@@ -1,0 +1,25 @@
+# Local development database. Run the API and web app on your machine with `npm run dev`.
+#   npm run db:up     start PostgreSQL (creates the `fwp` and `fwp_test` databases)
+#   npm run db:down   stop it (data is kept in the fwp-dev-db volume)
+name: fwp-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: fwp
+      POSTGRES_PASSWORD: fwp
+      POSTGRES_DB: fwp
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - fwp-dev-db:/var/lib/postgresql/data
+      - ./deploy/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fwp -d fwp"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  fwp-dev-db:

@@ -1,0 +1,33 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router";
+import { ApiError } from "./lib/api";
+import { AuthProvider } from "./lib/auth";
+import { ToastProvider } from "./lib/toast";
+import { router } from "./router";
+import "./styles/global.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+      // Don't retry client errors (404, 403…) — only transient failures.
+      retry: (failureCount, error) =>
+        failureCount < 2 && !(error instanceof ApiError && error.status >= 400 && error.status < 500),
+    },
+  },
+});
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </StrictMode>,
+);

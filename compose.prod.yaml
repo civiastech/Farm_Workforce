@@ -1,0 +1,65 @@
+# Production overlay. Use together with compose.yaml:
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+# Requires a .env file — copy .env.production.example and fill it in.
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    logging: *logging
+
+  migrate:
+    environment: &prod-api-env
+      NODE_ENV: production
+      DATABASE_URL: postgres://fwp:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/fwp
+      APP_ORIGIN: https://${DOMAIN:?Set DOMAIN in .env}
+      COOKIE_SECURE: "true"
+      # Caddy → nginx → API
+      TRUST_PROXY: "2"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM in .env}
+      SMTP_URL: ${SMTP_URL:?Set SMTP_URL in .env}
+    logging: *logging
+
+  api:
+    restart: always
+    environment: *prod-api-env
+    logging: *logging
+    deploy:
+      resources:
+        limits: { memory: 512m }
+
+  web:
+    restart: always
+    # Not exposed directly in production: Caddy is the only public entry point.
+    ports: !reset []
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web: { condition: service_healthy }
+    networks: [frontend]
+    logging: *logging
+
+volumes:
+  caddy-data:
+  caddy-config:

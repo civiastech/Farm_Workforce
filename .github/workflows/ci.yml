@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fwp
+          POSTGRES_PASSWORD: fwp
+          POSTGRES_DB: fwp_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fwp -d fwp_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://fwp:fwp@localhost:5432/fwp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Check migrations match the schema
+        working-directory: apps/api
+        run: |
+          npx drizzle-kit generate --name ci-drift-check
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::Schema changed without a migration. Run 'npm run db:generate' and commit the result."
+            git status --porcelain drizzle
+            exit 1
+          fi
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    name: Docker stack smoke test
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack
+        run: docker compose up -d --build --wait
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          base=http://localhost:8080
+          curl -fsS $base/ | grep -q '<div id="root">'
+          curl -fsS $base/jobs/anything | grep -q '<div id="root">'
+          curl -fsSI $base/ | grep -qi 'content-security-policy'
+          curl -fsS $base/api/ready | grep -q ready
+          docker compose exec -T api node dist/cli.js seed --force
+          curl -fsS "$base/api/jobs?state=Oyo" | grep -q '"total":3'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' $base/api/auth/login)
+          test "$code" = "403"
+          curl -fsS -H "Origin: $base" -H 'Content-Type: application/json' \
+            -d '{"email":"worker@demo.farmworkforce.ng","password":"demo-password-123"}' $base/api/auth/login | grep -q '"role":"worker"'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

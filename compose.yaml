@@ -1,0 +1,73 @@
+# Full stack in containers: PostgreSQL + migrations + API + web (nginx).
+#
+#   Local:       docker compose up --build             → http://localhost:8080
+#   Production:  docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#                (adds Caddy with automatic HTTPS; see docs/DEPLOYMENT.md)
+name: fwp
+
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://fwp:${POSTGRES_PASSWORD:-fwp-local-only}@db:5432/fwp
+  APP_ORIGIN: http://localhost:${PORT:-8080}
+  COOKIE_SECURE: "false"
+  # nginx → API
+  TRUST_PROXY: "1"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
+  MAIL_FROM: ${MAIL_FROM:-Farm Workforce <no-reply@localhost>}
+  SMTP_URL: ${SMTP_URL:-}
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fwp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fwp-local-only}
+      POSTGRES_DB: fwp
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fwp -d fwp"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [backend]
+
+  # One-shot: applies database migrations before the API starts.
+  migrate:
+    build: { context: ., target: api }
+    image: ${IMAGE_PREFIX:-fwp}-api:${IMAGE_TAG:-local}
+    command: ["node", "dist/migrate.js"]
+    environment: *api-env
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+    networks: [backend]
+
+  api:
+    image: ${IMAGE_PREFIX:-fwp}-api:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    init: true
+    environment: *api-env
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    networks: [backend]
+
+  web:
+    build: { context: ., target: web }
+    image: ${IMAGE_PREFIX:-fwp}-web:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [backend, frontend]
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+  frontend:

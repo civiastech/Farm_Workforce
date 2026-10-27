@@ -1,0 +1,40 @@
+{
+  "name": "farm-workforce-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Farm Workforce Platform — connecting agricultural workers and employers across Nigeria.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm run dev -w @fwp/api\" \"npm run dev -w @fwp/web\"",
+    "build": "npm run build -w @fwp/api && npm run build -w @fwp/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "db:up": "docker compose -f compose.dev.yaml up -d --wait",
+    "db:down": "docker compose -f compose.dev.yaml down",
+    "db:generate": "npm run db:generate -w @fwp/api",
+    "db:migrate": "npm run db:migrate -w @fwp/api",
+    "db:seed": "npm run db:seed -w @fwp/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.0.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}
