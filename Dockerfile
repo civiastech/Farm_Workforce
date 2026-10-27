@@ -45,7 +45,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
 CMD ["node", "--enable-source-maps", "dist/server.js"]
 
 # ---------- Web runtime: static files + reverse proxy to the API (runs as non-root) ----------
-FROM nginxinc/nginx-unprivileged:1.28-alpine AS web
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS web
 COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 8080
