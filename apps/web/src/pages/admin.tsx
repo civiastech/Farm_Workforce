@@ -6,11 +6,12 @@ import {
   type ReportStatus,
 } from "@fwp/shared";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BadgeCheck, Building2, Flag, ShieldCheck, ShieldOff, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
-import { Badge, EmptyState, Pagination, QueryError, Spinner } from "../components/ui";
+import { Avatar, Badge, EmptyState, Pagination, QueryError, Spinner } from "../components/ui";
 import { api, toQuery } from "../lib/api";
-import { JOB_STATUS_UI, formatDate } from "../lib/format";
+import { JOB_STATUS_UI, formatDate, timeAgo } from "../lib/format";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
 
@@ -19,9 +20,16 @@ export function AdminLayout() {
     <div className="page">
       <div className="wrap dash-layout">
         <nav className="dash-nav" aria-label="Moderation">
-          <NavLink to="/admin/reports">Reports</NavLink>
-          <NavLink to="/admin/employers">Employers</NavLink>
-          <NavLink to="/admin/account">Account</NavLink>
+          <span className="section-label">Moderation</span>
+          <NavLink to="/admin/reports">
+            <Flag size={18} /> Reports
+          </NavLink>
+          <NavLink to="/admin/employers">
+            <Building2 size={18} /> Employers
+          </NavLink>
+          <NavLink to="/admin/account">
+            <UserRound size={18} /> Account
+          </NavLink>
         </nav>
         <div>
           <Outlet />
@@ -36,6 +44,13 @@ const REPORT_STATUS_TONE: Record<ReportStatus, "warning" | "success" | "neutral"
   resolved: "success",
   dismissed: "neutral",
 };
+
+const REPORT_TABS: [ReportStatus | "", string][] = [
+  ["open", "Open"],
+  ["resolved", "Resolved"],
+  ["dismissed", "Dismissed"],
+  ["", "All"],
+];
 
 export function AdminReportsPage() {
   usePageTitle("Reports");
@@ -63,76 +78,85 @@ export function AdminReportsPage() {
 
   return (
     <div>
-      <div className="page-head spread">
-        <div>
-          <h1>Reports</h1>
-          <p className="muted" style={{ margin: 0 }}>
-            Reports from users about jobs. Every action is recorded in the audit log.
-          </p>
-        </div>
-        <div>
-          <label className="visually-hidden" htmlFor="report-status">
-            Filter by status
-          </label>
-          <select
-            id="report-status"
-            className="select"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as ReportStatus | "");
+      <div className="page-head">
+        <h1 className="display">Reports</h1>
+        <p className="muted">Reports from users about jobs. Every action is recorded in the audit log.</p>
+      </div>
+      <div className="tabs" role="tablist" aria-label="Filter reports">
+        {REPORT_TABS.map(([key, label]) => (
+          <button
+            key={label}
+            type="button"
+            role="tab"
+            aria-selected={status === key}
+            onClick={() => {
+              setStatus(key);
               setPage(1);
             }}
           >
-            <option value="open">Open</option>
-            <option value="resolved">Resolved</option>
-            <option value="dismissed">Dismissed</option>
-            <option value="">All</option>
-          </select>
-        </div>
+            {label}
+          </button>
+        ))}
       </div>
       {reports.isLoading ? (
         <Spinner />
       ) : reports.error ? (
         <QueryError error={reports.error} retry={() => reports.refetch()} />
       ) : reports.data?.items.length === 0 ? (
-        <EmptyState title="Nothing to review">
-          <p>No reports with this status.</p>
+        <EmptyState icon={ShieldCheck} title="Nothing to review">
+          No reports with this status. Nice work.
         </EmptyState>
       ) : (
         <>
           <ul className="list">
             {reports.data?.items.map((report) => (
-              <li key={report.id} className="card stack" style={{ "--stack": "10px" } as React.CSSProperties}>
+              <li key={report.id} className="list-card">
                 <div className="spread">
-                  <strong>{REPORT_REASONS[report.reason]}</strong>
-                  <Badge tone={REPORT_STATUS_TONE[report.status]}>{report.status}</Badge>
+                  <div className="row">
+                    <span
+                      className="tile-icon"
+                      style={{ background: "var(--danger-bg)", color: "var(--danger-text)" }}
+                    >
+                      <Flag size={18} />
+                    </span>
+                    <div>
+                      <h3>{REPORT_REASONS[report.reason]}</h3>
+                      <span className="subtle">
+                        {timeAgo(report.createdAt)} · by {report.reporter?.fullName ?? "a deleted user"}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge tone={REPORT_STATUS_TONE[report.status]} dot>
+                    {report.status}
+                  </Badge>
                 </div>
                 {report.job ? (
-                  <p style={{ margin: 0 }}>
-                    Job: <Link to={`/jobs/${report.job.id}`}>{report.job.title}</Link> by{" "}
-                    {report.job.organisationName}{" "}
+                  <p className="row" style={{ margin: 0 }}>
+                    <Link className="link" to={`/jobs/${report.job.id}`}>
+                      {report.job.title}
+                    </Link>
+                    <span className="subtle">{report.job.organisationName}</span>
                     <Badge tone={JOB_STATUS_UI[report.job.status].tone}>
                       {JOB_STATUS_UI[report.job.status].label}
                     </Badge>
                   </p>
                 ) : (
-                  <p className="subtle">Job has been deleted.</p>
-                )}
-                {report.details && (
-                  <p className="alert alert-info" style={{ margin: 0 }}>
-                    {report.details}
+                  <p className="subtle" style={{ margin: 0 }}>
+                    The job has since been deleted.
                   </p>
                 )}
-                <p className="subtle" style={{ margin: 0 }}>
-                  Reported {formatDate(report.createdAt)} by {report.reporter?.fullName ?? "a deleted user"}
-                  {report.resolvedAt && ` · closed ${formatDate(report.resolvedAt)}`}
-                </p>
+                {report.details && <blockquote className="quote">{report.details}</blockquote>}
+                {report.resolvedAt && (
+                  <p className="subtle" style={{ margin: 0 }}>
+                    Closed {formatDate(report.resolvedAt)}
+                  </p>
+                )}
                 {report.status === "open" && (
                   <div className="row">
                     {report.job && report.job.status !== "removed" && (
                       <button
                         type="button"
-                        className="btn btn-danger btn-small"
+                        className="btn btn-danger btn-sm"
                         disabled={resolve.isPending}
                         onClick={() => resolve.mutate({ id: report.id, status: "resolved", removeJob: true })}
                       >
@@ -141,7 +165,7 @@ export function AdminReportsPage() {
                     )}
                     <button
                       type="button"
-                      className="btn btn-outline btn-small"
+                      className="btn btn-outline btn-sm"
                       disabled={resolve.isPending}
                       onClick={() => resolve.mutate({ id: report.id, status: "resolved", removeJob: false })}
                     >
@@ -149,7 +173,7 @@ export function AdminReportsPage() {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-small"
+                      className="btn btn-ghost btn-sm"
                       disabled={resolve.isPending}
                       onClick={() => resolve.mutate({ id: report.id, status: "dismissed", removeJob: false })}
                     >
@@ -194,56 +218,47 @@ export function AdminEmployersPage() {
   return (
     <div>
       <div className="page-head">
-        <h1>Employers</h1>
+        <h1 className="display">Employers</h1>
         <p className="muted">
           Verify an employer only after checking their identity and business (e.g. CAC registration, a call or
-          visit).
+          visit). Unverified employers are listed first.
         </p>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Organisation</th>
-              <th scope="col">Contact</th>
-              <th scope="col">Open jobs</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employers.data?.items.map((e) => (
-              <tr key={e.userId}>
-                <td>
-                  <strong>{e.organisationName}</strong>
-                  <div className="subtle">
-                    {e.state} · joined {formatDate(e.createdAt)}
-                  </div>
-                </td>
-                <td>
-                  {e.fullName}
-                  <div className="subtle">{e.email}</div>
-                </td>
-                <td>{e.openJobs}</td>
-                <td>
-                  <div className="row">
-                    <Badge tone={e.verified ? "success" : "warning"}>
-                      {e.verified ? "Verified" : "Unverified"}
-                    </Badge>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-small"
-                      disabled={verify.isPending}
-                      onClick={() => verify.mutate({ userId: e.userId, verified: !e.verified })}
-                    >
-                      {e.verified ? "Unverify" : "Verify"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="list">
+        {employers.data?.items.map((e) => (
+          <li key={e.userId} className="list-card">
+            <div className="spread">
+              <div className="row" style={{ flexWrap: "nowrap", minWidth: 0 }}>
+                <Avatar name={e.organisationName} size={44} />
+                <div style={{ minWidth: 0 }}>
+                  <h3 className="icon-inline">
+                    {e.organisationName}
+                    {e.verified && <BadgeCheck size={17} className="verified" aria-label="Verified" />}
+                  </h3>
+                  <span className="subtle">
+                    {e.fullName} · {e.email} · {e.state}
+                  </span>
+                </div>
+              </div>
+              <div className="row">
+                <span className="chip">
+                  {e.openJobs} open job{e.openJobs === 1 ? "" : "s"}
+                </span>
+                <span className="subtle">Joined {formatDate(e.createdAt)}</span>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${e.verified ? "btn-ghost" : "btn-primary"}`}
+                  disabled={verify.isPending}
+                  onClick={() => verify.mutate({ userId: e.userId, verified: !e.verified })}
+                >
+                  {e.verified ? <ShieldOff size={15} /> : <BadgeCheck size={15} />}
+                  {e.verified ? "Remove verification" : "Verify"}
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
       <Pagination page={page} totalPages={employers.data?.totalPages ?? 1} onChange={setPage} />
     </div>
   );

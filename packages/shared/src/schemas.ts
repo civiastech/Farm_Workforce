@@ -192,6 +192,8 @@ export const jobSearchSchema = paginationSchema.extend({
   category: z.preprocess(emptyToUndefined, z.enum(JOB_CATEGORY_KEYS).optional()),
   state: z.preprocess(emptyToUndefined, stateSchema.optional()),
   employmentType: z.preprocess(emptyToUndefined, z.enum(EMPLOYMENT_TYPE_KEYS).optional()),
+  /** "pay" ranks by monthly-equivalent maximum pay, so daily and monthly jobs compare fairly. */
+  sort: z.preprocess(emptyToUndefined, z.enum(["newest", "pay"]).default("newest")),
 });
 export type JobSearch = z.input<typeof jobSearchSchema>;
 

@@ -6,6 +6,10 @@ import { ApiError } from "./lib/api";
 import { AuthProvider } from "./lib/auth";
 import { ToastProvider } from "./lib/toast";
 import { router } from "./router";
+// Self-hosted variable fonts (served from our origin, so the CSP stays 'self'-only).
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/fraunces/opsz.css";
+import "@fontsource-variable/fraunces/opsz-italic.css";
 import "./styles/global.css";
 
 const queryClient = new QueryClient({

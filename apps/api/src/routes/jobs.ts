@@ -14,7 +14,7 @@ import {
   type PlatformStats,
   type JobSummary,
 } from "@fwp/shared";
-import { and, count, desc, eq, ilike, inArray, isNotNull, ne, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { applications, employerProfiles, jobs, reports, users, workerProfiles } from "../db/schema";
 import { audit } from "../lib/audit";
@@ -22,6 +22,9 @@ import { badRequest, conflict, forbidden, notFound } from "../lib/errors";
 import { parse } from "../lib/validation";
 import { requireRole, requireUser } from "../plugins/auth";
 import { jobSummaryColumns, likePattern, toJobSummary } from "../services/jobs";
+
+// ~22 working days or ~4.33 weeks per month.
+const monthlyPayMax = sql`case ${jobs.payPeriod} when 'day' then ${jobs.payMax} * 22 when 'week' then ${jobs.payMax} * 13 / 3 else ${jobs.payMax} end`;
 
 export const jobRoutes: FastifyPluginAsync = async (app) => {
   const parseId = (request: FastifyRequest) => parse(uuidSchema, (request.params as { id?: string }).id);
@@ -74,7 +77,11 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
         .from(jobs)
         .innerJoin(employerProfiles, eq(employerProfiles.userId, jobs.employerId))
         .where(where)
-        .orderBy(desc(jobs.publishedAt), desc(jobs.id))
+        .orderBy(
+          ...(query.sort === "pay" ? [desc(monthlyPayMax)] : []),
+          desc(jobs.publishedAt),
+          desc(jobs.id),
+        )
         .limit(query.pageSize)
         .offset((query.page - 1) * query.pageSize),
       app.db

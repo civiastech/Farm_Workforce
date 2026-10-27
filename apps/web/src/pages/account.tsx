@@ -7,11 +7,13 @@ import {
   type ProfileResponse,
 } from "@fwp/shared";
 import { useQueryClient } from "@tanstack/react-query";
+import { Download, KeyRound, Trash2, UserRound } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Alert, Field, Options } from "../components/ui";
+import { Alert, Field, Options, PasswordInput } from "../components/ui";
 import { api } from "../lib/api";
 import { meQueryKey, useAuth } from "../lib/auth";
+import { formatDate } from "../lib/format";
 import { useFormSubmit } from "../lib/forms";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
@@ -22,10 +24,12 @@ export function AccountPage() {
   if (!user) return null;
 
   return (
-    <div className="stack" style={{ "--stack": "24px" } as React.CSSProperties}>
+    <div className="stack-lg">
       <div className="page-head" style={{ marginBottom: 0 }}>
-        <h1>Account &amp; privacy</h1>
-        <p className="muted">Signed in as {user.email}</p>
+        <h1 className="display">Account &amp; privacy</h1>
+        <p className="muted">
+          Signed in as {user.email} · member since {formatDate(user.createdAt)}
+        </p>
       </div>
       <AccountDetails />
       <ChangePassword />
@@ -52,26 +56,32 @@ function AccountDetails() {
   if (!user) return null;
 
   return (
-    <form className="card form" onSubmit={onSubmit} noValidate>
-      <h2 style={{ fontSize: "1.2rem", margin: 0 }}>Your details</h2>
-      {formError && <Alert tone="error">{formError}</Alert>}
-      <div className="form-grid">
-        <Field label="Full name" name="fullName" error={fieldErrors.fullName}>
-          {(props) => <input className="input" autoComplete="name" defaultValue={user.fullName} {...props} />}
-        </Field>
-        <Field label="Mobile number" name="phone" error={fieldErrors.phone}>
-          {(props) => (
-            <input className="input" type="tel" autoComplete="tel" defaultValue={user.phone} {...props} />
-          )}
-        </Field>
-        <Field label="Preferred language" name="preferredLanguage" error={fieldErrors.preferredLanguage}>
-          {(props) => (
-            <select className="select" defaultValue={user.preferredLanguage} {...props}>
-              <Options items={LANGUAGES} />
-            </select>
-          )}
-        </Field>
-      </div>
+    <form className="panel form" onSubmit={onSubmit} noValidate>
+      <section className="form-section">
+        <h2>
+          <UserRound size={18} /> Your details
+        </h2>
+        {formError && <Alert tone="error">{formError}</Alert>}
+        <div className="form-grid">
+          <Field label="Full name" name="fullName" error={fieldErrors.fullName}>
+            {(props) => (
+              <input className="input" autoComplete="name" defaultValue={user.fullName} {...props} />
+            )}
+          </Field>
+          <Field label="Mobile number" name="phone" error={fieldErrors.phone}>
+            {(props) => (
+              <input className="input" type="tel" autoComplete="tel" defaultValue={user.phone} {...props} />
+            )}
+          </Field>
+          <Field label="Preferred language" name="preferredLanguage" error={fieldErrors.preferredLanguage}>
+            {(props) => (
+              <select className="select" defaultValue={user.preferredLanguage} {...props}>
+                <Options items={LANGUAGES} />
+              </select>
+            )}
+          </Field>
+        </div>
+      </section>
       <div>
         <button className="btn btn-primary" type="submit" disabled={isPending}>
           {isPending ? "Saving…" : "Save details"}
@@ -96,22 +106,29 @@ function ChangePassword() {
   );
 
   return (
-    <form ref={formRef} className="card form" onSubmit={onSubmit} noValidate>
-      <h2 style={{ fontSize: "1.2rem", margin: 0 }}>Change password</h2>
-      {formError && <Alert tone="error">{formError}</Alert>}
-      <div className="form-grid">
-        <Field label="Current password" name="currentPassword" error={fieldErrors.currentPassword}>
-          {(props) => <input className="input" type="password" autoComplete="current-password" {...props} />}
-        </Field>
-        <Field
-          label="New password"
-          name="newPassword"
-          error={fieldErrors.newPassword}
-          hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
-        >
-          {(props) => <input className="input" type="password" autoComplete="new-password" {...props} />}
-        </Field>
-      </div>
+    <form ref={formRef} className="panel form" onSubmit={onSubmit} noValidate>
+      <section className="form-section">
+        <h2>
+          <KeyRound size={18} /> Change password
+        </h2>
+        <p className="subtle" style={{ margin: 0 }}>
+          Changing your password signs you out on every other device.
+        </p>
+        {formError && <Alert tone="error">{formError}</Alert>}
+        <div className="form-grid">
+          <Field label="Current password" name="currentPassword" error={fieldErrors.currentPassword}>
+            {(props) => <PasswordInput autoComplete="current-password" {...props} />}
+          </Field>
+          <Field
+            label="New password"
+            name="newPassword"
+            error={fieldErrors.newPassword}
+            hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
+          >
+            {(props) => <PasswordInput autoComplete="new-password" {...props} />}
+          </Field>
+        </div>
+      </section>
       <div>
         <button className="btn btn-primary" type="submit" disabled={isPending}>
           {isPending ? "Saving…" : "Change password"}
@@ -162,35 +179,54 @@ function YourData() {
   }
 
   return (
-    <section className="card stack danger-zone" aria-labelledby="your-data">
-      <h2 id="your-data" style={{ fontSize: "1.2rem" }}>
+    <section className="panel stack danger-zone" aria-labelledby="your-data">
+      <h2 id="your-data" className="panel-title" style={{ margin: 0 }}>
         Your data
       </h2>
-      <p className="muted">
-        You can download a copy of everything we hold about you, or permanently delete your account. Deleting
-        removes your profile, applications and any jobs you posted. This cannot be undone.
-      </p>
-      <div className="row">
+      <div className="spread">
+        <div style={{ maxWidth: "34em" }}>
+          <strong>Download a copy</strong>
+          <p className="subtle" style={{ margin: 0 }}>
+            Everything we hold about you — account, profile, applications and jobs — as a JSON file.
+          </p>
+        </div>
         <button type="button" className="btn btn-outline" onClick={downloadData} disabled={exporting}>
+          <Download size={17} />
           {exporting ? "Preparing…" : "Download my data"}
         </button>
+      </div>
+      <hr style={{ border: 0, borderTop: "1px solid var(--border)", margin: "4px 0" }} />
+      <div className="spread">
+        <div style={{ maxWidth: "34em" }}>
+          <strong>Delete account</strong>
+          <p className="subtle" style={{ margin: 0 }}>
+            Permanently removes your profile, applications and any jobs you posted. This cannot be undone.
+          </p>
+        </div>
         <button type="button" className="btn btn-danger" onClick={() => dialogRef.current?.showModal()}>
-          Delete my account
+          <Trash2 size={17} /> Delete account
         </button>
       </div>
+
       <dialog ref={dialogRef} aria-labelledby="delete-title">
         <form className="form" onSubmit={onSubmit} noValidate>
-          <h2 id="delete-title" style={{ fontSize: "1.25rem", margin: 0 }}>
-            Delete your account?
-          </h2>
-          <p className="muted" style={{ margin: 0 }}>
-            This permanently deletes your account and data. Enter your password to confirm.
-          </p>
+          <div>
+            <span
+              className="tile-icon dialog-icon"
+              style={{ background: "var(--danger-bg)", color: "var(--danger-text)" }}
+            >
+              <Trash2 size={20} />
+            </span>
+            <h2 id="delete-title" style={{ fontSize: "1.3rem", margin: 0 }}>
+              Delete your account?
+            </h2>
+            <p className="muted" style={{ margin: "6px 0 0" }}>
+              This permanently deletes your account and data. Enter your password to confirm.
+            </p>
+          </div>
           {formError && <Alert tone="error">{formError}</Alert>}
           <Field label="Password" name="password" error={fieldErrors.password}>
-            {(props) => (
-              <input className="input" type="password" autoComplete="current-password" {...props} />
-            )}
+            {(props) => <PasswordInput autoComplete="current-password" {...props} />}
           </Field>
           <div className="row" style={{ justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-outline" onClick={() => dialogRef.current?.close()}>

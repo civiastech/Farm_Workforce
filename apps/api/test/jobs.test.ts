@@ -101,6 +101,19 @@ describe("browsing jobs", () => {
     expect((await anon.get("/api/jobs?state=Atlantis")).statusCode).toBe(422);
   });
 
+  it("sorts by monthly-equivalent pay so daily and monthly jobs compare fairly", async () => {
+    const { client } = await registerEmployer(ctx.app);
+    await postJob(client, { title: "Monthly 150k", payMin: 100000, payMax: 150000, payPeriod: "month" });
+    await postJob(client, { title: "Daily 8k", payMin: 6000, payMax: 8000, payPeriod: "day" }); // ≈176k/month
+    await postJob(client, { title: "Monthly 60k", payMin: 45000, payMax: 60000, payPeriod: "month" });
+
+    const titles = (await new Client(ctx.app).get("/api/jobs?sort=pay"))
+      .json()
+      .items.map((j: { title: string }) => j.title);
+    expect(titles).toEqual(["Daily 8k", "Monthly 150k", "Monthly 60k"]);
+    expect((await new Client(ctx.app).get("/api/jobs?sort=salary")).statusCode).toBe(422);
+  });
+
   it("hides drafts from everyone except the owner", async () => {
     const { client: owner } = await registerEmployer(ctx.app);
     const id = await postJob(owner, { status: "draft" });

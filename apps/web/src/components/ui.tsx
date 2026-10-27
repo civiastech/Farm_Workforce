@@ -1,53 +1,170 @@
-import type { JobSummary } from "@fwp/shared";
-import { formatPay } from "@fwp/shared";
-import { useId, type ReactNode } from "react";
+import type { ApplicationStatus, JobCategory, JobSummary } from "@fwp/shared";
+import {
+  BadgeCheck,
+  Bird,
+  Briefcase,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  ClipboardList,
+  Clock,
+  Droplets,
+  Eye,
+  EyeOff,
+  Fish,
+  FlaskConical,
+  House,
+  Info,
+  MapPin,
+  Package,
+  Shovel,
+  Sprout,
+  Tractor,
+  TriangleAlert,
+  Users,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CATEGORY_ICONS, categoryLabel, employmentLabel, timeAgo } from "../lib/format";
+import {
+  PERIOD_LABEL,
+  avatarColour,
+  employmentLabel,
+  initials,
+  isNew,
+  payRange,
+  timeAgo,
+} from "../lib/format";
+
+// ---------------------------------------------------------------- Brand art
+
+export function LogoMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 21v-9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M12 13.5c0-4 2.8-6.8 7-6.8 0 4-2.9 6.8-7 6.8Z" fill="currentColor" />
+      <path d="M12 11.2c0-3.5-2.4-6-6-6 0 3.5 2.4 6 6 6Z" fill="currentColor" opacity=".75" />
+    </svg>
+  );
+}
+
+/** Rolling fields with crop rows; fills with currentColor. */
+export function FieldsIllustration({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d="M0 120 C 240 60, 420 70, 640 110 S 1080 170, 1440 90 L1440 200 L0 200Z"
+        fill="currentColor"
+        opacity=".35"
+      />
+      <path
+        d="M0 150 C 300 100, 560 120, 820 150 S 1220 180, 1440 140 L1440 200 L0 200Z"
+        fill="currentColor"
+      />
+      <g stroke="currentColor" strokeWidth="2" opacity=".5" fill="none">
+        <path d="M120 112 C 300 90, 460 92, 620 118" />
+        <path d="M80 126 C 280 100, 470 104, 660 132" />
+        <path d="M820 128 C 1000 150, 1180 140, 1360 104" />
+        <path d="M780 142 C 980 166, 1180 156, 1400 118" />
+      </g>
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------- Icons
+
+const CATEGORY_ICON: Record<JobCategory, LucideIcon> = {
+  general_labour: Shovel,
+  crop_production: Sprout,
+  irrigation: Droplets,
+  machinery: Tractor,
+  livestock: Bird,
+  aquaculture: Fish,
+  post_harvest: Package,
+  supervision: ClipboardList,
+  agronomy: FlaskConical,
+};
+
+export function CategoryIcon({ category, size = 20 }: { category: JobCategory; size?: number }) {
+  const Icon = CATEGORY_ICON[category];
+  return <Icon size={size} strokeWidth={1.9} aria-hidden="true" />;
+}
+
+// ---------------------------------------------------------------- Feedback
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
-export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`badge badge-${tone}`}>{children}</span>;
+export function Badge({ tone, dot, children }: { tone: Tone | "new"; dot?: boolean; children: ReactNode }) {
+  return (
+    <span className={`badge badge-${tone}`}>
+      {dot && <span className="dot" aria-hidden="true" />}
+      {children}
+    </span>
+  );
 }
+
+const ALERT_ICON = { info: Info, success: CircleCheck, warning: TriangleAlert, error: CircleAlert };
 
 export function Alert({
   tone = "info",
+  title,
   children,
 }: {
   tone?: "info" | "success" | "warning" | "error";
-  children: ReactNode;
+  title?: string;
+  children?: ReactNode;
 }) {
+  const Icon = ALERT_ICON[tone];
   return (
     <div className={`alert alert-${tone}`} role={tone === "error" ? "alert" : undefined}>
-      {children}
+      <Icon size={18} aria-hidden="true" />
+      <div>
+        {title && <strong>{title}</strong>}
+        {children}
+      </div>
     </div>
   );
 }
 
 export function Spinner({ label = "Loading" }: { label?: string }) {
   return (
-    <div role="status">
+    <div className="page-loader" role="status">
       <div className="spinner" aria-hidden="true" />
       <span className="visually-hidden">{label}…</span>
     </div>
   );
 }
 
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  children,
+  action,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <div className="empty-state">
+      <div className="tile-icon">
+        <Icon size={26} strokeWidth={1.8} aria-hidden="true" />
+      </div>
       <h3>{title}</h3>
-      {children}
+      {children && <p>{children}</p>}
+      {action}
     </div>
   );
 }
 
 export function QueryError({ error, retry }: { error: Error; retry?: () => void }) {
   return (
-    <Alert tone="error">
+    <Alert tone="error" title="Something went wrong">
       {error.message}{" "}
       {retry && (
-        <button type="button" className="link-button" onClick={retry}>
+        <button type="button" className="link-button link" onClick={retry}>
           Try again
         </button>
       )}
@@ -55,40 +172,89 @@ export function QueryError({ error, retry }: { error: Error; retry?: () => void 
   );
 }
 
+// ---------------------------------------------------------------- Forms
+
+export interface ControlProps {
+  id: string;
+  name: string;
+  "aria-invalid": boolean;
+  "aria-describedby"?: string;
+}
+
 interface FieldProps {
   label: string;
   name: string;
   error?: string;
-  hint?: string;
+  hint?: ReactNode;
+  optional?: boolean;
   className?: string;
-  children: (props: {
-    id: string;
-    name: string;
-    "aria-invalid": boolean;
-    "aria-describedby"?: string;
-  }) => ReactNode;
+  /** Shows a live character counter for text inputs. */
+  counter?: { max: number; initial?: number };
+  children: (props: ControlProps) => ReactNode;
 }
 
-/** Label + control + hint + error, wired up for screen readers. */
-export function Field({ label, name, error, hint, className, children }: FieldProps) {
+/** Label + control + hint + error (+ optional counter), wired up for screen readers. */
+export function Field({ label, name, error, hint, optional, className, counter, children }: FieldProps) {
   const id = useId();
+  const [length, setLength] = useState(counter?.initial ?? 0);
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+
   return (
-    <div className={`field ${className ?? ""}`}>
-      <label htmlFor={id}>{label}</label>
+    <div
+      className={`field ${className ?? ""}`}
+      onInput={counter ? (event) => setLength((event.target as HTMLInputElement).value.length) : undefined}
+    >
+      <label className="field-label" htmlFor={id}>
+        <span>
+          {label} {optional && <span className="optional">(optional)</span>}
+        </span>
+      </label>
       {children({ id, name, "aria-invalid": !!error, "aria-describedby": describedBy })}
-      {hint && (
-        <span id={hintId} className="field-hint">
-          {hint}
-        </span>
+      {(hint || error || counter) && (
+        <div className="field-foot">
+          <div style={{ display: "grid", gap: 4 }}>
+            {error && (
+              <span id={errorId} className="field-error">
+                <CircleAlert size={14} aria-hidden="true" />
+                {error}
+              </span>
+            )}
+            {hint && (
+              <span id={hintId} className="field-hint">
+                {hint}
+              </span>
+            )}
+          </div>
+          {counter && (
+            <span className={`counter ${length > counter.max * 0.9 ? "near" : ""}`} aria-hidden="true">
+              {length}/{counter.max}
+            </span>
+          )}
+        </div>
       )}
-      {error && (
-        <span id={errorId} className="field-error">
-          {error}
-        </span>
-      )}
+    </div>
+  );
+}
+
+export function PasswordInput({
+  autoComplete,
+  ...props
+}: ControlProps & { autoComplete: "current-password" | "new-password" }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="input-affix">
+      <input className="input" type={visible ? "text" : "password"} autoComplete={autoComplete} {...props} />
+      <button
+        type="button"
+        className="affix-button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        aria-pressed={visible}
+      >
+        {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
     </div>
   );
 }
@@ -113,43 +279,194 @@ export function Options({
   );
 }
 
-export function JobCard({ job, footer }: { job: JobSummary; footer?: ReactNode }) {
+// ---------------------------------------------------------------- People & progress
+
+export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+  return (
+    <span
+      className="avatar"
+      style={{ "--size": `${size}px`, "--avatar-bg": avatarColour(name) } as CSSProperties}
+      aria-hidden="true"
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+export function Meter({ value, label }: { value: number; label: string }) {
+  return (
+    <div
+      className="meter"
+      role="progressbar"
+      aria-label={label}
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <span style={{ width: `${value}%` }} />
+    </div>
+  );
+}
+
+const TRACKER_STEPS = ["Applied", "Shortlisted", "Hired"] as const;
+
+/** Submitted → Shortlisted → Hired, with the current step highlighted. */
+export function StatusTracker({ status }: { status: ApplicationStatus }) {
+  const reached = status === "hired" ? 3 : status === "shortlisted" ? 2 : 1;
+  const closed = status === "rejected" || status === "withdrawn";
+  return (
+    <ol className="tracker" aria-label="Application progress">
+      {TRACKER_STEPS.map((step, index) => {
+        const isReached = !closed && index < reached;
+        const isCurrent = !closed && index === reached - 1;
+        return (
+          <li
+            key={step}
+            className={`${isReached ? "reached" : ""} ${isCurrent ? "current" : ""}`}
+            aria-current={isCurrent ? "step" : undefined}
+          >
+            <span className="node">
+              {isReached && <Check size={14} strokeWidth={3} aria-hidden="true" />}
+            </span>
+            {step}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ---------------------------------------------------------------- Jobs
+
+type JobCardData = Pick<
+  JobSummary,
+  | "title"
+  | "category"
+  | "employmentType"
+  | "state"
+  | "town"
+  | "payMin"
+  | "payMax"
+  | "payPeriod"
+  | "positions"
+  | "accommodationProvided"
+  | "mealsProvided"
+  | "createdAt"
+  | "employer"
+> & { id?: string };
+
+export function JobCard({ job, footer }: { job: JobCardData; footer?: ReactNode }) {
+  const fresh = isNew(job.createdAt);
   return (
     <article className="job-card">
-      <div className="job-icon" aria-hidden="true">
-        {CATEGORY_ICONS[job.category]}
+      <div className="tile-icon">
+        <CategoryIcon category={job.category} size={22} />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h3>
-          <Link to={`/jobs/${job.id}`}>{job.title}</Link>
-        </h3>
+      <div style={{ minWidth: 0 }}>
+        <div className="job-head">
+          <div style={{ minWidth: 0 }}>
+            <h3>
+              {job.id ? (
+                <Link className="job-link" to={`/jobs/${job.id}`}>
+                  {job.title}
+                </Link>
+              ) : (
+                job.title || "Job title"
+              )}
+            </h3>
+            <span className="employer-line">
+              {job.employer.organisationName}
+              {job.employer.verified && (
+                <BadgeCheck className="verified" size={16} aria-label="Verified employer" />
+              )}
+            </span>
+          </div>
+          {fresh && <Badge tone="new">New</Badge>}
+        </div>
+
+        <div className="job-pay">
+          {payRange(job.payMin, job.payMax)} <small>{PERIOD_LABEL[job.payPeriod]}</small>
+        </div>
+
         <div className="job-meta">
           <span>
-            {job.employer.organisationName}
-            {job.employer.verified && (
-              <span title="Verified employer" aria-label="Verified employer">
-                {" "}
-                ✔
-              </span>
-            )}
+            <MapPin size={15} aria-hidden="true" />
+            {job.town ? `${job.town}, ` : ""}
+            {job.state}
           </span>
           <span>
-            📍 {job.town}, {job.state}
+            <Briefcase size={15} aria-hidden="true" />
+            {employmentLabel(job.employmentType)}
           </span>
-          <span>{timeAgo(job.createdAt)}</span>
+          {job.positions > 1 && (
+            <span>
+              <Users size={15} aria-hidden="true" />
+              {job.positions} positions
+            </span>
+          )}
         </div>
-        <div className="pay">{formatPay(job.payMin, job.payMax, job.payPeriod)}</div>
-        <div className="tags">
-          <span className="tag">{employmentLabel(job.employmentType)}</span>
-          <span className="tag">{categoryLabel(job.category)}</span>
-          {job.accommodationProvided && <span className="tag">Accommodation</span>}
-          {job.mealsProvided && <span className="tag">Meals</span>}
-          {job.positions > 1 && <span className="tag">{job.positions} positions</span>}
+
+        <div className="job-foot">
+          <div className="chips">
+            {job.accommodationProvided && (
+              <span className="chip chip-brand">
+                <House size={13} aria-hidden="true" />
+                Accommodation
+              </span>
+            )}
+            {job.mealsProvided && (
+              <span className="chip chip-brand">
+                <UtensilsCrossed size={13} aria-hidden="true" />
+                Meals
+              </span>
+            )}
+            {!job.accommodationProvided && !job.mealsProvided && (
+              <span className="subtle" style={{ fontSize: "0.82rem" }}>
+                No housing or meals
+              </span>
+            )}
+          </div>
+          <span className="subtle icon-inline" style={{ fontSize: "0.8rem" }}>
+            <Clock size={13} aria-hidden="true" />
+            {timeAgo(job.createdAt)}
+          </span>
         </div>
-        {footer && <div style={{ position: "relative", zIndex: 1, marginTop: 12 }}>{footer}</div>}
+        {footer && (
+          <div className="job-actions" style={{ marginTop: 14 }}>
+            {footer}
+          </div>
+        )}
       </div>
     </article>
   );
+}
+
+export function JobCardSkeleton() {
+  return (
+    <div className="job-card" aria-hidden="true">
+      <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 12 }} />
+      <div style={{ display: "grid", gap: 10 }}>
+        <div className="skeleton" style={{ height: 18, width: "70%" }} />
+        <div className="skeleton" style={{ height: 14, width: "40%" }} />
+        <div className="skeleton" style={{ height: 20, width: "45%", marginTop: 6 }} />
+        <div className="skeleton" style={{ height: 14, width: "60%" }} />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Pagination
+
+function pageWindow(page: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = new Set([1, total, page - 1, page, page + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const result: (number | "…")[] = [];
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1]! > 1) result.push("…");
+    result.push(p);
+  });
+  return result;
 }
 
 export function Pagination({
@@ -166,22 +483,37 @@ export function Pagination({
     <nav className="pagination" aria-label="Pagination">
       <button
         type="button"
-        className="btn btn-outline btn-small"
+        className="btn btn-outline btn-sm"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
       >
-        ← Previous
+        Previous
       </button>
-      <span className="subtle">
-        Page {page} of {totalPages}
-      </span>
+      {pageWindow(page, totalPages).map((p, i) =>
+        p === "…" ? (
+          <span key={`gap-${i}`} className="subtle" aria-hidden="true">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            className="page-num"
+            aria-current={p === page ? "page" : undefined}
+            aria-label={`Page ${p}`}
+            onClick={() => onChange(p)}
+          >
+            {p}
+          </button>
+        ),
+      )}
       <button
         type="button"
-        className="btn btn-outline btn-small"
+        className="btn btn-outline btn-sm"
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
       >
-        Next →
+        Next
       </button>
     </nav>
   );
