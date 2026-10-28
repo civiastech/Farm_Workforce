@@ -8,6 +8,7 @@ const { db, sql } = createDatabase(config.DATABASE_URL, { max: config.DATABASE_P
 const app = await buildApp({
   config,
   db,
+  backgroundJobs: true,
   pingDatabase: async () => {
     await sql`select 1`;
   },

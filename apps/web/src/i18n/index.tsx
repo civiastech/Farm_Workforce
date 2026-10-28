@@ -113,6 +113,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       chooseState: t("validation.chooseState"),
       email: t("validation.email"),
       phone: t("validation.phone"),
+      identifier: t("validation.identifier"),
+      code: t("validation.code"),
       enterPassword: t("validation.enterPassword"),
       acceptTerms: t("validation.acceptTerms"),
       payRange: t("validation.payRange"),

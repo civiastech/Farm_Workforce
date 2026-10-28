@@ -642,9 +642,11 @@ export function JobApplicantsPage() {
                       <a className="btn btn-outline btn-sm" href={`tel:${w.phone}`}>
                         <Phone size={15} /> {w.phone}
                       </a>
-                      <a className="btn btn-outline btn-sm" href={`mailto:${w.email}`}>
-                        <Mail size={15} /> {t("applicants.email")}
-                      </a>
+                      {w.email && (
+                        <a className="btn btn-outline btn-sm" href={`mailto:${w.email}`}>
+                          <Mail size={15} /> {t("applicants.email")}
+                        </a>
+                      )}
                     </div>
                   )}
                   <div className="spread">

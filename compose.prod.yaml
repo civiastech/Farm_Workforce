@@ -25,6 +25,7 @@ services:
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
       MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM in .env}
       SMTP_URL: ${SMTP_URL:?Set SMTP_URL in .env}
+      SMS_TRANSPORT: ${SMS_TRANSPORT:?Set SMS_TRANSPORT in .env (termii or africastalking)}
     logging: *logging
 
   api:

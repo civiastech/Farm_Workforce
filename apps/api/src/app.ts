@@ -6,7 +6,10 @@ import Fastify, { type FastifyError, type FastifyServerOptions } from "fastify";
 import type { Config } from "./config";
 import type { Database } from "./db/client";
 import { AppError, forbidden } from "./lib/errors";
+import { startBackgroundJobs } from "./lib/background";
 import { createMailer, type Mailer } from "./lib/mailer";
+import { createOutbox } from "./lib/outbox";
+import { createSmsSender, type SmsSender } from "./lib/sms";
 import { registerAuth } from "./plugins/auth";
 import { adminRoutes } from "./routes/admin";
 import { applicationRoutes } from "./routes/applications";
@@ -21,12 +24,23 @@ export interface AppDependencies {
   /** Checks database connectivity for the readiness probe. */
   pingDatabase: () => Promise<void>;
   mailer?: Mailer;
+  sms?: SmsSender;
   logger?: FastifyServerOptions["logger"];
+  /** Deliver queued notifications and run cleanup in this process. The server enables it; tests don't. */
+  backgroundJobs?: boolean;
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-export async function buildApp({ config, db, pingDatabase, mailer, logger }: AppDependencies) {
+export async function buildApp({
+  config,
+  db,
+  pingDatabase,
+  mailer,
+  sms,
+  logger,
+  backgroundJobs = false,
+}: AppDependencies) {
   const app = Fastify({
     logger: logger ?? {
       level: config.LOG_LEVEL,
@@ -46,6 +60,16 @@ export async function buildApp({ config, db, pingDatabase, mailer, logger }: App
   app.decorate("config", config);
   app.decorate("db", db);
   app.decorate("mailer", mailer ?? createMailer(config, app.log));
+  app.decorate("sms", sms ?? createSmsSender(config, app.log));
+  app.decorate("outbox", createOutbox(db, { sms: app.sms, mailer: app.mailer, logger: app.log }));
+
+  if (backgroundJobs) {
+    let stop: (() => void) | undefined;
+    app.addHook("onReady", async () => {
+      stop = startBackgroundJobs(app);
+    });
+    app.addHook("onClose", async () => stop?.());
+  }
 
   await app.register(helmet, {
     contentSecurityPolicy: false,

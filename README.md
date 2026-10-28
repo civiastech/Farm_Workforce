@@ -14,11 +14,11 @@ A job marketplace that connects agricultural workers and farm employers across N
 
 ## Features
 
-- **Workers:** register, build a profile (skills, experience, location), search and filter jobs, apply with a message, track and withdraw applications, get email updates.
+- **Workers:** register, build a profile (skills, experience, location), search and filter jobs, apply with a message, track and withdraw applications, get SMS (and email) updates in their own language.
 - **Employers:** organisation profile, post/edit/close jobs (with drafts), view applicants, shortlist, hire or decline.
 - **Privacy by design:** an applicant's phone and email are revealed only once they're shortlisted. Users can download all their data or delete their account.
 - **Trust & safety:** one-tap job reporting, a moderation queue, job takedown, verified-employer badges, and an audit log of security and moderation events.
-- **Accounts:** secure sessions, password reset by email, password change (signs out other devices), rate-limited sign-in.
+- **Accounts:** sign up with just a mobile number, verified by SMS code (email optional). Sign in with phone or email. Password reset by SMS code or email link, password change (signs out other devices), rate-limited sign-in.
 - **Six languages:** English, Naijá (Pidgin), Hausa, Yorùbá, Igbo and French. Switch from the header, mobile menu or footer; signed-in users keep their choice on every device.
 - **Built for phones on slow networks:** mobile-first layout, code-split bundles, a light/dark theme that follows the device, and accessible forms and navigation.
 

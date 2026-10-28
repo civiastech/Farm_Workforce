@@ -30,10 +30,12 @@ export interface Paginated<T> {
 
 export interface CurrentUser {
   id: string;
-  email: string;
+  /** Optional: many workers sign up with a phone number only. */
+  email: string | null;
   role: Role;
   fullName: string;
-  phone: string;
+  /** E.164. Always set for workers and employers; admins may have none. */
+  phone: string | null;
   preferredLanguage: Language;
   hasProfile: boolean;
   createdAt: string;
@@ -150,7 +152,8 @@ export interface AdminReport {
 export interface AdminEmployer {
   userId: string;
   fullName: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   organisationName: string;
   state: string;
   verified: boolean;

@@ -15,6 +15,13 @@
       "when": 1793120781691,
       "tag": "0001_add_french",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793185069580,
+      "tag": "0002_phone_accounts",
+      "breakpoints": true
     }
   ]
 }

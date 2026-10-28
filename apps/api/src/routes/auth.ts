@@ -1,12 +1,16 @@
 import {
+  CODE_RESEND_SECONDS,
   changePasswordSchema,
   forgotPasswordSchema,
+  isPhoneIdentifier,
   loginSchema,
+  phoneCodeRequestSchema,
   registerSchema,
   resetPasswordSchema,
+  resetPasswordWithCodeSchema,
 } from "@fwp/shared";
 import { and, eq, gt, isNull, ne } from "drizzle-orm";
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { passwordResetTokens, sessions, users } from "../db/schema";
 import { audit } from "../lib/audit";
 import { AppError } from "../lib/errors";
@@ -15,44 +19,100 @@ import { generateToken, hashToken } from "../lib/tokens";
 import { parse } from "../lib/validation";
 import { endSession, requireUser, startSession } from "../plugins/auth";
 import { getCurrentUser } from "../services/users";
+import { consumeCode, issueCode, type IssueResult } from "../services/verification";
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+export const emailTaken = () =>
+  new AppError(409, "email_taken", "An account with this email already exists. Try signing in instead.", {
+    email: "An account with this email already exists.",
+  });
+export const phoneTaken = () =>
+  new AppError(
+    409,
+    "phone_taken",
+    "An account with this mobile number already exists. Try signing in instead.",
+    { phone: "An account with this mobile number already exists." },
+  );
+
+/** The log transport is for local development: echo the code so it can be typed in without an SMS. */
+export function codeResponse(app: FastifyInstance, result: IssueResult & { sent: true }) {
+  return {
+    resendInSeconds: CODE_RESEND_SECONDS,
+    ...(app.config.SMS_TRANSPORT === "log" ? { devCode: result.code } : {}),
+  };
+}
+
+export function cooldownError(retryAfterSeconds: number) {
+  return new AppError(
+    429,
+    "code_cooldown",
+    `Please wait ${retryAfterSeconds} seconds before asking for another code.`,
+  );
+}
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const strictLimit = {
     config: { rateLimit: { max: app.config.AUTH_RATE_LIMIT_PER_MINUTE, timeWindow: "1 minute" } },
   };
 
+  // Step 1 of sign-up (and of changing number): send a code to the phone.
+  app.post("/auth/phone/code", strictLimit, async (request, reply) => {
+    const input = parse(phoneCodeRequestSchema, request.body);
+    const sessionUser = input.purpose === "change_phone" ? requireUser(request) : null;
+
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.phone, input.phone));
+    if (owner) throw phoneTaken();
+
+    let language = input.language;
+    if (sessionUser) {
+      const [row] = await app.db
+        .select({ preferredLanguage: users.preferredLanguage })
+        .from(users)
+        .where(eq(users.id, sessionUser.id));
+      language = row?.preferredLanguage ?? language;
+    }
+
+    const result = await issueCode(app, { phone: input.phone, purpose: input.purpose, language });
+    if (!result.sent) throw cooldownError(result.retryAfterSeconds);
+    return reply.status(202).send(codeResponse(app, result));
+  });
+
+  // Step 2 of sign-up: create the account with the code from the SMS.
   app.post("/auth/register", strictLimit, async (request, reply) => {
     const input = parse(registerSchema, request.body);
 
-    const [existing] = await app.db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
-    if (existing)
-      throw new AppError(
-        409,
-        "email_taken",
-        "An account with this email already exists. Try signing in instead.",
-      );
+    const [phoneOwner] = await app.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.phone, input.phone));
+    if (phoneOwner) throw phoneTaken();
+    if (input.email) {
+      const [emailOwner] = await app.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, input.email));
+      if (emailOwner) throw emailTaken();
+    }
+
+    await consumeCode(app, { phone: input.phone, purpose: "register", code: input.code });
 
     const [user] = await app.db
       .insert(users)
       .values({
-        email: input.email,
+        email: input.email ?? null,
         passwordHash: await hashPassword(input.password),
         role: input.role,
         fullName: input.fullName,
         phone: input.phone,
+        phoneVerifiedAt: new Date(),
         preferredLanguage: input.preferredLanguage,
         termsAcceptedAt: new Date(),
       })
       .onConflictDoNothing()
       .returning({ id: users.id });
-    if (!user)
-      throw new AppError(
-        409,
-        "email_taken",
-        "An account with this email already exists. Try signing in instead.",
-      );
+    // Lost a race with another sign-up for the same number or email.
+    if (!user) throw phoneTaken();
 
     await startSession(request, reply, user.id);
     await audit(request, {
@@ -66,7 +126,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post("/auth/login", strictLimit, async (request, reply) => {
     const input = parse(loginSchema, request.body);
-    const [user] = await app.db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    const [user] = await app.db
+      .select()
+      .from(users)
+      .where(
+        isPhoneIdentifier(input.identifier)
+          ? eq(users.phone, input.identifier)
+          : eq(users.email, input.identifier),
+      )
+      .limit(1);
 
     // Always run a hash comparison so response time doesn't reveal whether the email exists.
     const valid = await verifyPassword(input.password, user?.passwordHash ?? (await dummyPasswordHash));
@@ -74,9 +142,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       await audit(request, {
         action: "auth.login_failed",
         actorId: user?.id ?? null,
-        metadata: { email: input.email },
+        metadata: { identifier: input.identifier },
       });
-      throw new AppError(401, "invalid_credentials", "Incorrect email or password");
+      throw new AppError(401, "invalid_credentials", "Incorrect mobile number, email or password");
     }
     if (user.disabledAt) {
       throw new AppError(403, "account_disabled", "This account has been disabled. Please contact support.");
@@ -106,7 +174,31 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post("/auth/password/forgot", strictLimit, async (request, reply) => {
-    const { email } = parse(forgotPasswordSchema, request.body);
+    const { identifier } = parse(forgotPasswordSchema, request.body);
+
+    if (isPhoneIdentifier(identifier)) {
+      const [user] = await app.db
+        .select({ id: users.id, preferredLanguage: users.preferredLanguage })
+        .from(users)
+        .where(and(eq(users.phone, identifier), isNull(users.disabledAt)))
+        .limit(1);
+      let devCode: string | undefined;
+      if (user) {
+        // A cooldown is not reported: that would reveal the number has an account.
+        const result = await issueCode(app, {
+          phone: identifier,
+          purpose: "reset",
+          language: user.preferredLanguage,
+        });
+        if (result.sent) {
+          await audit(request, { action: "auth.password_reset_requested", actorId: user.id });
+          if (app.config.SMS_TRANSPORT === "log") devCode = result.code;
+        }
+      }
+      return reply.status(202).send({ ok: true, channel: "sms", ...(devCode ? { devCode } : {}) });
+    }
+
+    const email = identifier;
     const [user] = await app.db
       .select({ id: users.id, fullName: users.fullName })
       .from(users)
@@ -141,7 +233,30 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
       await audit(request, { action: "auth.password_reset_requested", actorId: user.id });
     }
-    return reply.status(202).send({ ok: true });
+    return reply.status(202).send({ ok: true, channel: "email" });
+  });
+
+  app.post("/auth/password/reset-code", strictLimit, async (request, reply) => {
+    const input = parse(resetPasswordWithCodeSchema, request.body);
+    await consumeCode(app, { phone: input.phone, purpose: "reset", code: input.code });
+
+    const userId = await app.db.transaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({ passwordHash: await hashPassword(input.password), phoneVerifiedAt: new Date() })
+        .where(and(eq(users.phone, input.phone), isNull(users.disabledAt)))
+        .returning({ id: users.id });
+      if (!user)
+        throw new AppError(400, "invalid_code", "That code is wrong or has expired.", {
+          code: "That code is wrong or has expired.",
+        });
+      // Sign out everywhere: whoever had access before the reset no longer does.
+      await tx.delete(sessions).where(eq(sessions.userId, user.id));
+      return user.id;
+    });
+
+    await audit(request, { action: "auth.password_reset", actorId: userId, metadata: { via: "sms" } });
+    return reply.status(204).send();
   });
 
   app.post("/auth/password/reset", strictLimit, async (request, reply) => {

@@ -3,13 +3,17 @@ import {
   PASSWORD_MIN_LENGTH,
   accountUpdateSchema,
   changePasswordSchema,
+  changePhoneSchema,
   deleteAccountSchema,
+  formatPhone,
+  newPhoneSchema,
   type ProfileResponse,
 } from "@fwp/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, KeyRound, Trash2, UserRound } from "lucide-react";
+import { Download, KeyRound, Smartphone, Trash2, UserRound } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { CodeField, type CodeSent } from "../components/CodeField";
 import { Alert, Field, Options, PasswordInput } from "../components/ui";
 import { useI18n } from "../i18n";
 import { api } from "../lib/api";
@@ -29,10 +33,14 @@ export function AccountPage() {
       <div className="page-head" style={{ marginBottom: 0 }}>
         <h1 className="display">{t("nav.account")}</h1>
         <p className="muted">
-          {t("account.signedInAs", { email: user.email, date: formatDate(user.createdAt) })}
+          {t("account.signedInAs", {
+            email: user.email ?? formatPhone(user.phone ?? ""),
+            date: formatDate(user.createdAt),
+          })}
         </p>
       </div>
       <AccountDetails />
+      <MobileNumber />
       <ChangePassword />
       {user.role !== "admin" && <YourData />}
     </div>
@@ -72,9 +80,21 @@ function AccountDetails() {
               <input className="input" autoComplete="name" defaultValue={user.fullName} {...props} />
             )}
           </Field>
-          <Field label={t("common.phone")} name="phone" error={fieldErrors.phone}>
+          <Field
+            label={t("common.email")}
+            name="email"
+            optional
+            error={fieldErrors.email}
+            hint={t("account.emailHint")}
+          >
             {(props) => (
-              <input className="input" type="tel" autoComplete="tel" defaultValue={user.phone} {...props} />
+              <input
+                className="input"
+                type="email"
+                autoComplete="email"
+                defaultValue={user.email ?? ""}
+                {...props}
+              />
             )}
           </Field>
           <Field label={t("common.language")} name="preferredLanguage" error={fieldErrors.preferredLanguage}>
@@ -92,6 +112,110 @@ function AccountDetails() {
         </button>
       </div>
     </form>
+  );
+}
+
+/** Changing number is two steps: send a code to the new number, then confirm it. */
+function MobileNumber() {
+  const { t } = useI18n();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [pending, setPending] = useState<{ phone: string; sent: CodeSent } | null>(null);
+
+  const requestCode = (phone: string) =>
+    api.post<CodeSent>("/auth/phone/code", { phone, purpose: "change_phone" });
+
+  const start = useFormSubmit(newPhoneSchema, (values) => requestCode(values.phone), {
+    onSuccess: (sent, values) => setPending({ phone: values.phone, sent }),
+  });
+  const confirm = useFormSubmit(
+    changePhoneSchema,
+    (values) => api.put<ProfileResponse>("/me/phone", values),
+    {
+      transform: (raw) => ({ ...raw, phone: pending?.phone }),
+      onSuccess: (data) => {
+        queryClient.setQueryData(meQueryKey, { user: data.user });
+        queryClient.setQueryData(["profile"], data);
+        setPending(null);
+        setEditing(false);
+        toast(t("account.phoneChanged"));
+      },
+    },
+  );
+  if (!user) return null;
+
+  const cancel = () => {
+    setPending(null);
+    setEditing(false);
+  };
+
+  return (
+    <section className="panel form" aria-labelledby="mobile-number">
+      <div className="form-section">
+        <h2 id="mobile-number">
+          <Smartphone size={18} /> {t("account.phoneTitle")}
+        </h2>
+        <p className="subtle" style={{ margin: 0 }}>
+          {t("account.phoneLead")}
+        </p>
+        {!editing && (
+          <div className="spread">
+            <strong className="num">{user.phone ? formatPhone(user.phone) : t("account.noPhone")}</strong>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(true)}>
+              {user.phone ? t("account.changePhone") : t("account.addPhone")}
+            </button>
+          </div>
+        )}
+        {editing && !pending && (
+          <form className="form" onSubmit={start.onSubmit} noValidate>
+            {start.formError && <Alert tone="error">{start.formError}</Alert>}
+            <Field label={t("account.newPhone")} name="phone" error={start.fieldErrors.phone}>
+              {(props) => (
+                <input
+                  className="input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="0803 123 4567"
+                  {...props}
+                />
+              )}
+            </Field>
+            <div className="row">
+              <button className="btn btn-primary" type="submit" disabled={start.isPending}>
+                {start.isPending ? t("register.sendingCode") : t("register.continue")}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={cancel}>
+                {t("common.cancel")}
+              </button>
+            </div>
+          </form>
+        )}
+        {pending && (
+          <form className="form" onSubmit={confirm.onSubmit} noValidate>
+            {(confirm.formError || confirm.fieldErrors.phone) && (
+              <Alert tone="error">{confirm.formError ?? confirm.fieldErrors.phone}</Alert>
+            )}
+            <CodeField
+              phone={pending.phone}
+              sent={pending.sent}
+              onResend={() => requestCode(pending.phone)}
+              error={confirm.fieldErrors.code}
+            />
+            <div className="row">
+              <button className="btn btn-primary" type="submit" disabled={confirm.isPending}>
+                {confirm.isPending ? t("common.saving") : t("account.savePhone")}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={cancel}>
+                {t("common.cancel")}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </section>
   );
 }
 

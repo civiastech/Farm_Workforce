@@ -61,15 +61,17 @@ erDiagram
 
 ## Key decisions
 
-| Decision                                 | Why                                                                                                                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server-side sessions, not JWTs           | Sessions can be revoked instantly (logout, password reset, account deletion). Only a hash of the token is stored, so a database leak can't be replayed. |
-| scrypt from Node's crypto                | A memory-hard hash with no native add-on to compile in Alpine images. Parameters are versioned in the hash, and weaker hashes are upgraded on login.    |
-| `TRUST_PROXY` as a hop count             | The client IP (used for rate limits and audit) comes from the outermost trusted proxy. A spoofed `X-Forwarded-For` header can't change it.              |
-| Contact details hidden until shortlisted | This stops harvesting of workers' phone numbers, which is a known scam vector in informal labour markets.                                               |
-| Same-origin deployment                   | No CORS, first-party `SameSite=Lax` cookies, and a simple CSP (`'self'`).                                                                               |
-| Plain CSS with design tokens             | No CSS framework to download. Every colour is a token with a light and a dark value, so dark mode is complete by construction.                          |
-| Route-level code splitting               | Public browsing pages load first. Dashboards, admin and forms are fetched on demand, which matters on slow mobile data.                                 |
+| Decision                                 | Why                                                                                                                                                        |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server-side sessions, not JWTs           | Sessions can be revoked instantly (logout, password reset, account deletion). Only a hash of the token is stored, so a database leak can't be replayed.    |
+| scrypt from Node's crypto                | A memory-hard hash with no native add-on to compile in Alpine images. Parameters are versioned in the hash, and weaker hashes are upgraded on login.       |
+| `TRUST_PROXY` as a hop count             | The client IP (used for rate limits and audit) comes from the outermost trusted proxy. A spoofed `X-Forwarded-For` header can't change it.                 |
+| Contact details hidden until shortlisted | This stops harvesting of workers' phone numbers, which is a known scam vector in informal labour markets.                                                  |
+| Phone number as the main identity        | Many farm workers have no email address. The number is verified by SMS code at sign-up, so it's also a reliable way to reach them.                         |
+| Notifications through an outbox table    | The SMS or email is written in the same transaction as the status change, then sent by a background loop with retries, so a provider outage loses nothing. |
+| Same-origin deployment                   | No CORS, first-party `SameSite=Lax` cookies, and a simple CSP (`'self'`).                                                                                  |
+| Plain CSS with design tokens             | No CSS framework to download. Every colour is a token with a light and a dark value, so dark mode is complete by construction.                             |
+| Route-level code splitting               | Public browsing pages load first. Dashboards, admin and forms are fetched on demand, which matters on slow mobile data.                                    |
 
 ## Scaling
 
@@ -83,6 +85,7 @@ The current setup comfortably serves a national launch on one modest server (2 v
 ## Roadmap ideas (not built)
 
 - Emails in the recipient's preferred language (the interface is already translated; see TRANSLATIONS.md).
-- SMS or WhatsApp notifications and phone-number login (OTP). Many workers rely on SMS more than email.
+- WhatsApp as a notification channel (Termii supports it through `TERMII_CHANNEL=whatsapp`, but templates need approval first).
+- Notify employers by SMS about new applicants, with a daily digest so a busy job doesn't send dozens of messages.
 - In-app messaging between employer and shortlisted worker.
 - Error tracking (e.g. Sentry) and metrics. The hidden source maps are already generated.

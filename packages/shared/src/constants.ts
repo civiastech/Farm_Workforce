@@ -118,3 +118,10 @@ export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
 export const MAX_PAGE_SIZE = 50;
+
+/** One-time SMS codes: why the code was sent. */
+export const VERIFICATION_PURPOSES = ["register", "change_phone", "reset"] as const;
+export type VerificationPurpose = (typeof VERIFICATION_PURPOSES)[number];
+export const CODE_LENGTH = 6;
+/** Minimum wait before another code can be sent to the same number. */
+export const CODE_RESEND_SECONDS = 60;

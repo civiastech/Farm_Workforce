@@ -38,7 +38,6 @@ async function createAdmin(db: Database) {
       email,
       fullName: name,
       role: "admin",
-      phone: "+2340000000000",
       passwordHash: await hashPassword(password),
       termsAcceptedAt: new Date(),
     })
@@ -56,6 +55,7 @@ const DEMO_PASSWORD = "demo-password-123";
 const demoEmployers = [
   {
     email: "greenfields@demo.farmworkforce.ng",
+    phone: "+2348030000001",
     fullName: "Tunde Bakare",
     organisationName: "GreenFields Produce",
     state: "Oyo",
@@ -64,6 +64,7 @@ const demoEmployers = [
   },
   {
     email: "harvestpoint@demo.farmworkforce.ng",
+    phone: "+2348030000002",
     fullName: "Ngozi Eze",
     organisationName: "HarvestPoint Farms",
     state: "Ogun",
@@ -72,6 +73,7 @@ const demoEmployers = [
   },
   {
     email: "northstar@demo.farmworkforce.ng",
+    phone: "+2348030000003",
     fullName: "Musa Bello",
     organisationName: "NorthStar Livestock",
     state: "Kaduna",
@@ -202,7 +204,8 @@ async function seed(db: Database) {
         email: e.email,
         fullName: e.fullName,
         role: "employer",
-        phone: "+2348030000000",
+        phone: e.phone,
+        phoneVerifiedAt: new Date(),
         passwordHash,
         termsAcceptedAt: new Date(),
       })
@@ -231,6 +234,7 @@ async function seed(db: Database) {
       fullName: "Ade Okafor",
       role: "worker",
       phone: "+2348031234567",
+      phoneVerifiedAt: new Date(),
       passwordHash,
       termsAcceptedAt: new Date(),
     })
@@ -246,6 +250,7 @@ async function seed(db: Database) {
   });
 
   console.log("Demo data loaded. Sign in with any of these (password: %s):", DEMO_PASSWORD);
+  console.log("  worker: 0803 123 4567 (or worker@demo.farmworkforce.ng)");
   console.log(
     ["worker@demo.farmworkforce.ng", ...demoEmployers.map((e) => e.email)].map((e) => `  ${e}`).join("\n"),
   );

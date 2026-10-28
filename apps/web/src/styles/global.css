@@ -2788,3 +2788,24 @@ dialog::backdrop {
   opacity: 0.2;
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------- SMS code entry */
+.code-sent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  color: var(--text-muted);
+}
+.code-sent svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--brand);
+}
+.code-input {
+  max-width: 13rem;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.35em;
+  text-align: center;
+}

@@ -16,6 +16,14 @@ x-api-env: &api-env
   MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
   MAIL_FROM: ${MAIL_FROM:-Farm Workforce <no-reply@localhost>}
   SMTP_URL: ${SMTP_URL:-}
+  # "log" prints SMS to the API log and shows sign-up codes on screen (local only).
+  SMS_TRANSPORT: ${SMS_TRANSPORT:-log}
+  SMS_SENDER_ID: ${SMS_SENDER_ID:-}
+  TERMII_API_KEY: ${TERMII_API_KEY:-}
+  TERMII_BASE_URL: ${TERMII_BASE_URL:-https://api.ng.termii.com}
+  TERMII_CHANNEL: ${TERMII_CHANNEL:-dnd}
+  AT_USERNAME: ${AT_USERNAME:-}
+  AT_API_KEY: ${AT_API_KEY:-}
 
 services:
   db:

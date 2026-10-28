@@ -4,10 +4,17 @@ import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { applications, employerProfiles, jobs, users } from "../db/schema";
 import { audit } from "../lib/audit";
 import { badRequest, notFound } from "../lib/errors";
+import { smsText } from "../lib/messages";
+import type { OutboxMessage } from "../lib/outbox";
 import { parse } from "../lib/validation";
 import { requireRole } from "../plugins/auth";
 
-const STATUS_EMAIL: Partial<Record<string, (job: string, employer: string) => string>> = {
+const NOTIFIED_STATUSES = ["shortlisted", "hired", "rejected"] as const;
+type NotifiedStatus = (typeof NOTIFIED_STATUSES)[number];
+const isNotified = (status: string): status is NotifiedStatus =>
+  (NOTIFIED_STATUSES as readonly string[]).includes(status);
+
+const STATUS_EMAIL: Record<NotifiedStatus, (job: string, employer: string) => string> = {
   shortlisted: (job, employer) =>
     `Good news — ${employer} has shortlisted you for "${job}". They can now see your phone number and may contact you directly.`,
   hired: (job, employer) => `Congratulations — ${employer} has marked you as hired for "${job}".`,
@@ -29,6 +36,8 @@ export const applicationRoutes: FastifyPluginAsync = async (app) => {
         jobTitle: jobs.title,
         employerId: jobs.employerId,
         workerEmail: users.email,
+        workerPhone: users.phone,
+        workerLanguage: users.preferredLanguage,
         workerName: users.fullName,
         organisationName: employerProfiles.organisationName,
       })
@@ -43,24 +52,46 @@ export const applicationRoutes: FastifyPluginAsync = async (app) => {
       throw badRequest("The applicant has withdrawn this application");
     if (row.application.status === status) return { id, status };
 
-    await app.db.update(applications).set({ status }).where(eq(applications.id, id));
+    // Queue the worker's SMS and email in the same transaction as the change, so neither is lost.
+    const messages: OutboxMessage[] = [];
+    if (isNotified(status)) {
+      const workerId = row.application.workerId;
+      if (row.workerPhone) {
+        messages.push({
+          userId: workerId,
+          channel: "sms",
+          recipient: row.workerPhone,
+          body: smsText(row.workerLanguage, status, {
+            employer: row.organisationName,
+            job: row.jobTitle,
+            url: `${app.config.APP_ORIGIN}/jobs`,
+          }),
+        });
+      }
+      if (row.workerEmail) {
+        messages.push({
+          userId: workerId,
+          channel: "email",
+          recipient: row.workerEmail,
+          subject: `Update on your application: ${row.jobTitle}`,
+          body: `Hello ${row.workerName},
+
+${STATUS_EMAIL[status](row.jobTitle, row.organisationName)}
+
+View your applications: ${app.config.APP_ORIGIN}/dashboard/applications`,
+        });
+      }
+    }
+    await app.db.transaction(async (tx) => {
+      await tx.update(applications).set({ status }).where(eq(applications.id, id));
+      await app.outbox.enqueue(messages, tx);
+    });
     await audit(request, {
       action: "application.status_changed",
       entityType: "application",
       entityId: id,
       metadata: { from: row.application.status, to: status },
     });
-
-    const message = STATUS_EMAIL[status]?.(row.jobTitle, row.organisationName);
-    if (message) {
-      app.mailer
-        .send({
-          to: row.workerEmail,
-          subject: `Update on your application: ${row.jobTitle}`,
-          text: `Hello ${row.workerName},\n\n${message}\n\nView your applications: ${app.config.APP_ORIGIN}/dashboard/applications`,
-        })
-        .catch((error) => request.log.error({ err: error }, "Failed to send application status email"));
-    }
 
     return { id, status };
   });

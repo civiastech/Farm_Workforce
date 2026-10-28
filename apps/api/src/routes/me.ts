@@ -1,12 +1,13 @@
 import {
   accountUpdateSchema,
+  changePhoneSchema,
   deleteAccountSchema,
   employerProfileSchema,
   workerProfileSchema,
   type ProfileResponse,
   type WorkerApplication,
 } from "@fwp/shared";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { applications, employerProfiles, jobs, reports, sessions, users, workerProfiles } from "../db/schema";
 import { audit } from "../lib/audit";
@@ -16,6 +17,8 @@ import { parse } from "../lib/validation";
 import { endSession, requireRole, requireUser } from "../plugins/auth";
 import { toEmployerProfile, toWorkerProfile } from "../services/profiles";
 import { getCurrentUser } from "../services/users";
+import { consumeCode } from "../services/verification";
+import { emailTaken, phoneTaken } from "./auth";
 
 export const meRoutes: FastifyPluginAsync = async (app) => {
   async function loadProfile(userId: string): Promise<ProfileResponse> {
@@ -36,7 +39,48 @@ export const meRoutes: FastifyPluginAsync = async (app) => {
   app.put("/me/account", async (request) => {
     const user = requireUser(request);
     const input = parse(accountUpdateSchema, request.body);
-    await app.db.update(users).set(input).where(eq(users.id, user.id));
+    const email = input.email ?? null;
+
+    if (email) {
+      const [owner] = await app.db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, email), ne(users.id, user.id)));
+      if (owner) throw emailTaken();
+    } else {
+      // Every account needs a way to sign in: an email, a phone number, or both.
+      const [row] = await app.db.select({ phone: users.phone }).from(users).where(eq(users.id, user.id));
+      if (!row?.phone) {
+        throw new AppError(400, "email_required", "Add an email address so you can still sign in.", {
+          email: "Add an email address so you can still sign in.",
+        });
+      }
+    }
+
+    await app.db
+      .update(users)
+      .set({ fullName: input.fullName, email, preferredLanguage: input.preferredLanguage })
+      .where(eq(users.id, user.id));
+    if (email !== user.email) {
+      await audit(request, { action: "account.email_changed", entityType: "user", entityId: user.id });
+    }
+    return loadProfile(user.id);
+  });
+
+  // Changing the mobile number needs the code sent to the new number by /auth/phone/code.
+  app.put("/me/phone", async (request) => {
+    const user = requireUser(request);
+    const input = parse(changePhoneSchema, request.body);
+
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.phone, input.phone));
+    if (owner) throw phoneTaken();
+    await consumeCode(app, { phone: input.phone, purpose: "change_phone", code: input.code });
+
+    await app.db
+      .update(users)
+      .set({ phone: input.phone, phoneVerifiedAt: new Date() })
+      .where(eq(users.id, user.id));
+    await audit(request, { action: "account.phone_changed", entityType: "user", entityId: user.id });
     return loadProfile(user.id);
   });
 
@@ -109,6 +153,7 @@ export const meRoutes: FastifyPluginAsync = async (app) => {
         role: users.role,
         fullName: users.fullName,
         phone: users.phone,
+        phoneVerifiedAt: users.phoneVerifiedAt,
         preferredLanguage: users.preferredLanguage,
         termsAcceptedAt: users.termsAcceptedAt,
         lastLoginAt: users.lastLoginAt,

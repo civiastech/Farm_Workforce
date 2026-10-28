@@ -8,11 +8,13 @@ import {
   REPORT_REASON_KEYS,
   REPORT_STATUSES,
   ROLES,
+  VERIFICATION_PURPOSES,
 } from "@fwp/shared";
 import { sql } from "drizzle-orm";
 import {
   bigserial,
   boolean,
+  check,
   date,
   index,
   inet,
@@ -35,6 +37,9 @@ export const jobStatusEnum = pgEnum("job_status", JOB_STATUSES);
 export const applicationStatusEnum = pgEnum("application_status", APPLICATION_STATUSES);
 export const reportReasonEnum = pgEnum("report_reason", REPORT_REASON_KEYS);
 export const reportStatusEnum = pgEnum("report_status", REPORT_STATUSES);
+export const verificationPurposeEnum = pgEnum("verification_purpose", VERIFICATION_PURPOSES);
+export const notificationChannelEnum = pgEnum("notification_channel", ["sms", "email"]);
+export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -48,18 +53,25 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    email: text("email").notNull(),
+    /** Optional: many workers sign up with a phone number only. */
+    email: text("email"),
     passwordHash: text("password_hash").notNull(),
     role: roleEnum("role").notNull(),
     fullName: text("full_name").notNull(),
-    phone: text("phone").notNull(),
+    /** E.164. Required at sign-up for workers and employers; admins created by the CLI may have none. */
+    phone: text("phone"),
+    phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     preferredLanguage: languageEnum("preferred_language").notNull().default("en"),
     termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }).notNull(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     disabledAt: timestamp("disabled_at", { withTimezone: true }),
     ...timestamps,
   },
-  (t) => [uniqueIndex("users_email_unique").on(t.email)],
+  (t) => [
+    uniqueIndex("users_email_unique").on(t.email),
+    uniqueIndex("users_phone_unique").on(t.phone),
+    check("users_email_or_phone", sql`${t.email} is not null or ${t.phone} is not null`),
+  ],
 );
 
 export const workerProfiles = pgTable(
@@ -176,6 +188,45 @@ export const passwordResetTokens = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("password_reset_tokens_user_idx").on(t.userId)],
+);
+
+/** One-time SMS codes. Only a salted hash of the code is stored. */
+export const verificationCodes = pgTable(
+  "verification_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    phone: text("phone").notNull(),
+    purpose: verificationPurposeEnum("purpose").notNull(),
+    codeHash: text("code_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("verification_codes_phone_idx").on(t.phone, t.purpose, t.createdAt)],
+);
+
+/**
+ * Outbox for SMS and email notifications. Rows are written alongside the change that
+ * caused them and delivered by a background worker with retries.
+ */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    channel: notificationChannelEnum("channel").notNull(),
+    recipient: text("recipient").notNull(),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    status: notificationStatusEnum("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notifications_due_idx").on(t.status, t.nextAttemptAt)],
 );
 
 export const reports = pgTable(

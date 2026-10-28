@@ -15,6 +15,8 @@ export interface ValidationMessages {
   chooseState: string;
   email: string;
   phone: string;
+  identifier: string;
+  code: string;
   enterPassword: string;
   acceptTerms: string;
   payRange: string;
@@ -32,6 +34,8 @@ export const englishValidationMessages: ValidationMessages = {
   chooseState: "Choose a state",
   email: "Enter a valid email address",
   phone: "Enter a valid Nigerian mobile number, e.g. 0803 123 4567",
+  identifier: "Enter your mobile number or email address",
+  code: "Enter the 6-digit code",
   enterPassword: "Enter your password",
   acceptTerms: "You must accept the terms and privacy notice",
   payRange: "Maximum pay must be at least the minimum pay",

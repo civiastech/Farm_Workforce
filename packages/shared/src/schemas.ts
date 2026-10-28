@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   APPLICATION_STATUSES,
+  CODE_LENGTH,
   EMPLOYER_APPLICATION_STATUSES,
   EMPLOYER_JOB_STATUSES,
   EMPLOYMENT_TYPE_KEYS,
@@ -82,6 +83,35 @@ export const emailSchema = z
   .toLowerCase()
   .pipe(z.email({ error: () => vm("email") }).max(254));
 
+/**
+ * Sign-in identifier: a Nigerian mobile number or an email address.
+ * Outputs the normalised value (E.164 phone or lower-case email); `isPhoneIdentifier` tells them apart.
+ */
+export const identifierSchema = z
+  .string()
+  .trim()
+  .min(1, { error: () => vm("identifier") })
+  .max(254)
+  .transform((value, ctx) => {
+    const normalised = value.includes("@")
+      ? emailSchema.safeParse(value).data
+      : (normaliseNigerianPhone(value) ?? undefined);
+    if (!normalised) {
+      ctx.addIssue({ code: "custom", message: vm("identifier") });
+      return z.NEVER;
+    }
+    return normalised;
+  });
+
+export const isPhoneIdentifier = (identifier: string) => identifier.startsWith("+");
+
+export const codeSchema = z
+  .string()
+  .trim()
+  .regex(new RegExp(String.raw`^\d{${CODE_LENGTH}}$`), { error: () => vm("code") });
+
+const optionalEmail = z.preprocess(emptyToUndefined, emailSchema.optional());
+
 export const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH);
 
 export const stateSchema = z.enum(NIGERIAN_STATES, { error: () => vm("chooseState") });
@@ -90,19 +120,30 @@ export const uuidSchema = z.uuid({ message: "Invalid id" });
 
 // ---------- Auth ----------
 
-export const registerSchema = z.object({
+/** Sign-up details, checked before a verification code is sent to the phone. */
+export const registerDetailsSchema = z.object({
   role: z.enum(SIGNUP_ROLES),
   fullName: text(2, 120),
-  email: emailSchema,
   phone: phoneSchema,
+  email: optionalEmail,
   password: passwordSchema,
   preferredLanguage: languageSchema.default("en"),
   acceptTerms: z.literal(true, { error: () => vm("acceptTerms") }),
 });
+
+export const registerSchema = registerDetailsSchema.extend({ code: codeSchema });
 export type RegisterInput = z.input<typeof registerSchema>;
 
+/** Asks for a one-time code by SMS. Password-reset codes go through /auth/password/forgot. */
+export const phoneCodeRequestSchema = z.object({
+  phone: phoneSchema,
+  purpose: z.enum(["register", "change_phone"]),
+  /** Language of the SMS. For a signed-in user, their saved language is used instead. */
+  language: languageSchema.default("en"),
+});
+
 export const loginSchema = z.object({
-  email: emailSchema,
+  identifier: identifierSchema,
   password: z
     .string()
     .min(1, { error: () => vm("enterPassword") })
@@ -110,10 +151,18 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.input<typeof loginSchema>;
 
-export const forgotPasswordSchema = z.object({ email: emailSchema });
+export const forgotPasswordSchema = z.object({ identifier: identifierSchema });
 
+/** Reset with the link sent by email. */
 export const resetPasswordSchema = z.object({
   token: z.string().min(20).max(200),
+  password: passwordSchema,
+});
+
+/** Reset with the code sent by SMS. */
+export const resetPasswordWithCodeSchema = z.object({
+  phone: phoneSchema,
+  code: codeSchema,
   password: passwordSchema,
 });
 
@@ -133,8 +182,17 @@ export const deleteAccountSchema = z.object({
 
 export const accountUpdateSchema = z.object({
   fullName: text(2, 120),
-  phone: phoneSchema,
+  email: optionalEmail,
   preferredLanguage: languageSchema,
+});
+
+/** Step 1 of changing the mobile number: the new number. */
+export const newPhoneSchema = z.object({ phone: phoneSchema });
+
+/** Step 2: the new number with the code sent to it. */
+export const changePhoneSchema = z.object({
+  phone: phoneSchema,
+  code: codeSchema,
 });
 
 export const workerProfileSchema = z.object({

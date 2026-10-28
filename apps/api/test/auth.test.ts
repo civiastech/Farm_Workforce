@@ -1,5 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Client, PASSWORD, createTestContext, registerWorker, uniqueEmail } from "./helpers";
+import {
+  Client,
+  PASSWORD,
+  createTestContext,
+  registerWorker,
+  signUp,
+  uniqueEmail,
+  uniquePhone,
+} from "./helpers";
 
 let ctx: Awaited<ReturnType<typeof createTestContext>>;
 
@@ -26,7 +34,7 @@ describe("registration and sessions", () => {
   it("registers, signs in automatically and returns the current user", async () => {
     const client = new Client(ctx.app);
     const email = uniqueEmail();
-    const res = await client.post("/api/auth/register", {
+    const res = await signUp(client, {
       role: "worker",
       fullName: "Zainab Musa",
       email: email.toUpperCase(),
@@ -56,11 +64,11 @@ describe("registration and sessions", () => {
 
   it("rejects duplicate emails", async () => {
     const { email } = await registerWorker(ctx.app);
-    const res = await new Client(ctx.app).post("/api/auth/register", {
+    const res = await signUp(new Client(ctx.app), {
       role: "employer",
       fullName: "Someone Else",
       email,
-      phone: "08031234567",
+      phone: uniquePhone(),
       password: PASSWORD,
       acceptTerms: true,
     });
@@ -78,7 +86,7 @@ describe("registration and sessions", () => {
     });
     expect(res.statusCode).toBe(422);
     expect(Object.keys(res.json().error.fields)).toEqual(
-      expect.arrayContaining(["role", "fullName", "email", "phone", "password", "acceptTerms"]),
+      expect.arrayContaining(["role", "fullName", "email", "phone", "password", "acceptTerms", "code"]),
     );
   });
 
@@ -86,14 +94,17 @@ describe("registration and sessions", () => {
     const { email } = await registerWorker(ctx.app);
     const client = new Client(ctx.app);
 
-    const bad = await client.post("/api/auth/login", { email, password: "wrong-password-123" });
+    const bad = await client.post("/api/auth/login", { identifier: email, password: "wrong-password-123" });
     expect(bad.statusCode).toBe(401);
     expect(bad.json().error.code).toBe("invalid_credentials");
-    const unknown = await client.post("/api/auth/login", { email: "nobody@example.com", password: PASSWORD });
+    const unknown = await client.post("/api/auth/login", {
+      identifier: "nobody@example.com",
+      password: PASSWORD,
+    });
     expect(unknown.statusCode).toBe(401);
     expect(unknown.json().error.message).toBe(bad.json().error.message);
 
-    const good = await client.post("/api/auth/login", { email, password: PASSWORD });
+    const good = await client.post("/api/auth/login", { identifier: email, password: PASSWORD });
     expect(good.statusCode).toBe(200);
     expect((await client.get("/api/auth/me")).json().user.email).toBe(email);
   });
@@ -124,7 +135,7 @@ describe("CSRF protection", () => {
       method: "POST",
       url: "/api/auth/login",
       headers: { origin: "https://evil.example" },
-      payload: { email: "a@b.com", password: "x" },
+      payload: { identifier: "a@b.com", password: "x" },
     });
     expect(res.statusCode).toBe(403);
   });
@@ -140,7 +151,7 @@ describe("password reset", () => {
     const { email, client: oldSession } = await registerWorker(ctx.app);
     const anon = new Client(ctx.app);
 
-    const res = await anon.post("/api/auth/password/forgot", { email });
+    const res = await anon.post("/api/auth/password/forgot", { identifier: email });
     expect(res.statusCode).toBe(202);
     expect(ctx.mailer.sent).toHaveLength(1);
     const token = new URL(ctx.mailer.sent[0]!.text.match(/https?:\/\/\S+/)![0]).searchParams.get("token")!;
@@ -154,11 +165,15 @@ describe("password reset", () => {
     );
 
     expect((await oldSession.get("/api/auth/me")).json().user).toBeNull();
-    expect((await anon.post("/api/auth/login", { email, password: newPassword })).statusCode).toBe(200);
+    expect(
+      (await anon.post("/api/auth/login", { identifier: email, password: newPassword })).statusCode,
+    ).toBe(200);
   });
 
   it("does not reveal whether an email is registered", async () => {
-    const res = await new Client(ctx.app).post("/api/auth/password/forgot", { email: "nobody@example.com" });
+    const res = await new Client(ctx.app).post("/api/auth/password/forgot", {
+      identifier: "nobody@example.com",
+    });
     expect(res.statusCode).toBe(202);
     expect(ctx.mailer.sent).toHaveLength(0);
   });
@@ -168,7 +183,7 @@ describe("change password", () => {
   it("requires the current password and keeps only the current session", async () => {
     const { client, email } = await registerWorker(ctx.app);
     const other = new Client(ctx.app);
-    await other.post("/api/auth/login", { email, password: PASSWORD });
+    await other.post("/api/auth/login", { identifier: email, password: PASSWORD });
 
     const wrong = await client.post("/api/auth/password/change", {
       currentPassword: "nope-nope-nope",
@@ -195,7 +210,7 @@ describe("client IP behind proxies", () => {
         url: "/api/auth/login",
         remoteAddress: "172.21.0.4",
         headers: { origin: "http://localhost:5173", "x-forwarded-for": "6.6.6.6, 41.58.0.9, 172.21.0.1" },
-        payload: { email: "nobody@example.com", password: "whatever" },
+        payload: { identifier: "nobody@example.com", password: "whatever" },
       });
       const [row] = await proxied.sql`select host(ip) as ip from audit_logs order by id desc limit 1`;
       expect(row!.ip).toBe("41.58.0.9");
@@ -213,7 +228,8 @@ describe("rate limiting", () => {
       const statuses: number[] = [];
       for (let i = 0; i < 4; i++) {
         statuses.push(
-          (await client.post("/api/auth/login", { email: "x@example.com", password: "whatever" })).statusCode,
+          (await client.post("/api/auth/login", { identifier: "x@example.com", password: "whatever" }))
+            .statusCode,
         );
       }
       expect(statuses).toEqual([401, 401, 401, 429]);

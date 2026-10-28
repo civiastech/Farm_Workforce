@@ -1,3 +1,4 @@
+import { formatPhone } from "@fwp/shared";
 import {
   REPORT_REASONS,
   type AdminEmployer,
@@ -239,7 +240,7 @@ export function AdminEmployersPage() {
                     {e.verified && <BadgeCheck size={17} className="verified" aria-label="Verified" />}
                   </h3>
                   <span className="subtle">
-                    {e.fullName} · {e.email} · {e.state}
+                    {e.fullName} · {e.email ?? (e.phone && formatPhone(e.phone))} · {e.state}
                   </span>
                 </div>
               </div>

@@ -117,6 +117,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
           userId: users.id,
           fullName: users.fullName,
           email: users.email,
+          phone: users.phone,
           organisationName: employerProfiles.organisationName,
           state: employerProfiles.state,
           verifiedAt: employerProfiles.verifiedAt,

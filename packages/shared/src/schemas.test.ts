@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { jobInputSchema, normaliseNigerianPhone, registerSchema } from "./schemas";
-import { formatPay } from "./format";
+import {
+  codeSchema,
+  identifierSchema,
+  jobInputSchema,
+  normaliseNigerianPhone,
+  registerSchema,
+} from "./schemas";
+import { formatPay, formatPhone } from "./format";
 
 describe("normaliseNigerianPhone", () => {
   it.each([
@@ -26,6 +32,7 @@ describe("registerSchema", () => {
     phone: "0803 123 4567",
     password: "correct-horse-battery",
     acceptTerms: true,
+    code: "123456",
   };
 
   it("normalises fields", () => {
@@ -57,6 +64,32 @@ describe("registerSchema", () => {
   it("rejects short passwords", () => {
     expect(registerSchema.safeParse({ ...valid, password: "short" }).success).toBe(false);
   });
+
+  it("makes email optional (many workers only have a phone)", () => {
+    const parsed = registerSchema.parse({ ...valid, email: "" });
+    expect(parsed.email).toBeUndefined();
+  });
+});
+
+describe("identifierSchema", () => {
+  it.each([
+    ["0803 123 4567", "+2348031234567"],
+    [" Ade@Example.com ", "ade@example.com"],
+  ])("normalises %s", (input, expected) => {
+    expect(identifierSchema.parse(input)).toBe(expected);
+  });
+
+  it.each(["", "12345", "not-an-email@"])("rejects %j", (input) => {
+    expect(identifierSchema.safeParse(input).success).toBe(false);
+  });
+});
+
+describe("codeSchema", () => {
+  it("accepts exactly six digits", () => {
+    expect(codeSchema.parse(" 012345 ")).toBe("012345");
+    expect(codeSchema.safeParse("12345").success).toBe(false);
+    expect(codeSchema.safeParse("12345a").success).toBe(false);
+  });
 });
 
 describe("jobInputSchema", () => {
@@ -83,6 +116,12 @@ describe("jobInputSchema", () => {
     const result = jobInputSchema.safeParse({ ...job, payMin: 200000 });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual(["payMax"]);
+  });
+});
+
+describe("formatPhone", () => {
+  it("groups Nigerian numbers for reading", () => {
+    expect(formatPhone("+2348031234567")).toBe("+234 803 123 4567");
   });
 });
 

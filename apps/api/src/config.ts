@@ -34,6 +34,16 @@ const envSchema = z
     MAIL_TRANSPORT: z.enum(["log", "smtp"]).default("log"),
     MAIL_FROM: z.string().default("Farm Workforce <no-reply@localhost>"),
     SMTP_URL: z.string().optional(),
+    /** `log` prints messages (and shows sign-up codes on screen) for local development only. */
+    SMS_TRANSPORT: z.enum(["log", "termii", "africastalking"]).default("log"),
+    /** Registered alphanumeric sender ID, e.g. "FarmWork". */
+    SMS_SENDER_ID: z.string().max(11).optional(),
+    TERMII_API_KEY: z.string().optional(),
+    TERMII_BASE_URL: z.url().default("https://api.ng.termii.com"),
+    /** "dnd" reaches numbers on Do-Not-Disturb, which transactional messages need. */
+    TERMII_CHANNEL: z.enum(["dnd", "generic", "whatsapp"]).default("dnd"),
+    AT_USERNAME: z.string().optional(),
+    AT_API_KEY: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_TRANSPORT === "smtp" && !env.SMTP_URL) {
@@ -41,6 +51,30 @@ const envSchema = z
         code: "custom",
         path: ["SMTP_URL"],
         message: "SMTP_URL is required when MAIL_TRANSPORT=smtp",
+      });
+    }
+    const needs = (key: keyof typeof env, when: string) => {
+      if (!env[key])
+        ctx.addIssue({ code: "custom", path: [key], message: `${key} is required when ${when}` });
+    };
+    if (env.SMS_TRANSPORT === "termii") {
+      needs("TERMII_API_KEY", "SMS_TRANSPORT=termii");
+      needs("SMS_SENDER_ID", "SMS_TRANSPORT=termii");
+    }
+    if (env.SMS_TRANSPORT === "africastalking") {
+      needs("AT_USERNAME", "SMS_TRANSPORT=africastalking");
+      needs("AT_API_KEY", "SMS_TRANSPORT=africastalking");
+    }
+    if (
+      env.SMS_TRANSPORT === "log" &&
+      env.NODE_ENV === "production" &&
+      env.APP_ORIGIN.startsWith("https://")
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["SMS_TRANSPORT"],
+        message:
+          "Set SMS_TRANSPORT to termii or africastalking: the log transport shows sign-up codes on screen",
       });
     }
     if (

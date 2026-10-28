@@ -31,12 +31,11 @@ async function createAdmin() {
     email,
     fullName: "Moderator",
     role: "admin",
-    phone: "+2348030000000",
     passwordHash: await hashPassword(PASSWORD),
     termsAcceptedAt: new Date(),
   });
   const client = new Client(ctx.app);
-  await client.post("/api/auth/login", { email, password: PASSWORD });
+  await client.post("/api/auth/login", { identifier: email, password: PASSWORD });
   return client;
 }
 
@@ -140,7 +139,7 @@ describe("browsing jobs", () => {
 describe("applications", () => {
   it("runs the full apply → shortlist → hire flow with privacy-preserving contact details", async () => {
     const { client: employer } = await registerEmployer(ctx.app);
-    const { client: worker, email: workerEmail } = await registerWorker(ctx.app);
+    const { client: worker, email: workerEmail, phone: workerPhone } = await registerWorker(ctx.app);
     const jobId = await postJob(employer);
 
     const apply = await worker.post(`/api/jobs/${jobId}/applications`, {
@@ -164,10 +163,17 @@ describe("applications", () => {
     });
     expect(shortlist.statusCode).toBe(200);
     applicants = (await employer.get(`/api/employer/jobs/${jobId}/applications`)).json().items;
-    expect(applicants[0].worker).toMatchObject({ phone: "+2348031234567", email: workerEmail });
+    expect(applicants[0].worker).toMatchObject({ phone: workerPhone, email: workerEmail });
 
-    await new Promise((r) => setTimeout(r, 20));
+    // The worker is told by SMS and email, delivered from the outbox.
+    const smsBefore = ctx.sms.sent.length;
+    expect(await ctx.app.outbox.processDue()).toBe(2);
     expect(ctx.mailer.sent.map((m) => m.to)).toContain(workerEmail);
+    expect(ctx.sms.sent).toHaveLength(smsBefore + 1);
+    expect(ctx.sms.sent.at(-1)).toMatchObject({ to: workerPhone });
+    expect(ctx.sms.sent.at(-1)!.text).toMatch(
+      /GreenFields Produce shortlisted you for "Drip irrigation technician"/,
+    );
 
     const mine = (await worker.get("/api/me/applications")).json().items;
     expect(mine[0]).toMatchObject({
@@ -281,7 +287,8 @@ describe("account data rights", () => {
 
     expect((await worker.get("/api/auth/me")).json().user).toBeNull();
     expect(
-      (await new Client(ctx.app).post("/api/auth/login", { email, password: PASSWORD })).statusCode,
+      (await new Client(ctx.app).post("/api/auth/login", { identifier: email, password: PASSWORD }))
+        .statusCode,
     ).toBe(401);
     expect((await employer.get(`/api/employer/jobs/${jobId}/applications`)).json().items).toHaveLength(0);
   });

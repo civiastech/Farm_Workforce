@@ -6,7 +6,8 @@ This guide puts the platform live on a single Linux server with HTTPS. It takes 
 
 - **A server.** Ubuntu 24.04 LTS, at least 2 vCPU, 4 GB RAM and 40 GB disk. Any provider works. A region close to your users (e.g. Lagos or Johannesburg, otherwise Europe) keeps the app fast.
 - **A domain name** (e.g. `farmworkforce.ng`). Point its DNS **A** record (and **AAAA** for IPv6) at the server, plus `www`.
-- **An SMTP email provider** for password resets. Any provider that offers SMTP credentials works.
+- **An SMTP email provider** for password resets and application updates.
+- **An SMS provider account**: [Termii](https://termii.com) or [Africa's Talking](https://africastalking.com). Sign-up, password-reset codes and application updates go by SMS. Register a sender ID (e.g. `FarmWork`) early: approval by the networks can take several days. Any provider that offers SMTP credentials works.
 
 ## 2. Prepare the server
 
@@ -27,7 +28,7 @@ sudo mkdir -p /srv && sudo chown $USER /srv && cd /srv
 git clone https://github.com/civiastech/Farm_Workforce.git farm-workforce-platform
 cd farm-workforce-platform
 cp .env.production.example .env
-nano .env        # set DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, MAIL_FROM, SMTP_URL
+nano .env        # set DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, MAIL_FROM, SMTP_URL and the SMS settings
 chmod 600 .env
 ```
 
@@ -99,21 +100,28 @@ Then run `dc pull && dc up -d --wait`. Do not pass `--build`. If the packages ar
 | Recent audit events  | `dc exec db psql -U fwp -d fwp -c "select created_at, action, host(ip) from audit_logs order by id desc limit 50"` |
 | Restart everything   | `dc restart`                                                                                                       |
 
+**Notifications:** SMS and emails about applications go through an outbox table and are retried with back-off (30 s up to about 2 hours, six attempts). To see failures: `dc exec db psql -U fwp -d fwp -c "select created_at, channel, attempts, last_error from notifications where status <> 'sent' order by created_at desc limit 20"`. The API also deletes expired sessions and codes every hour.
+
 **Monitoring:** point an uptime checker at `https://YOUR-DOMAIN/api/ready`. It returns `503` if the database is unreachable. API logs are structured JSON (one line per request, with a request ID), ready for any log shipper.
 
 ## Configuration reference (API)
 
-| Variable                     | Default           | Notes                                                            |
-| ---------------------------- | ----------------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`               | required          | `postgres://user:pass@host:5432/db`                              |
-| `APP_ORIGIN`                 | required          | Public URL of the site. Used for CSRF checks and links in emails |
-| `TRUST_PROXY`                | `1`               | Number of reverse proxies in front of the API (production: `2`)  |
-| `COOKIE_SECURE`              | from `APP_ORIGIN` | `true` when the origin is https                                  |
-| `SESSION_TTL_DAYS`           | `14`              | Sliding session lifetime                                         |
-| `RATE_LIMIT_PER_MINUTE`      | `300`             | Per client IP, all endpoints                                     |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10`              | Sign-in, registration, password endpoints                        |
-| `MAIL_TRANSPORT`             | `log`             | `smtp` in production                                             |
-| `SMTP_URL`, `MAIL_FROM`      | —                 | Required when `MAIL_TRANSPORT=smtp`                              |
-| `LOG_LEVEL`                  | `info`            | `debug` for troubleshooting                                      |
+| Variable                     | Default           | Notes                                                                                                                   |
+| ---------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`               | required          | `postgres://user:pass@host:5432/db`                                                                                     |
+| `APP_ORIGIN`                 | required          | Public URL of the site. Used for CSRF checks and links in emails                                                        |
+| `TRUST_PROXY`                | `1`               | Number of reverse proxies in front of the API (production: `2`)                                                         |
+| `COOKIE_SECURE`              | from `APP_ORIGIN` | `true` when the origin is https                                                                                         |
+| `SESSION_TTL_DAYS`           | `14`              | Sliding session lifetime                                                                                                |
+| `RATE_LIMIT_PER_MINUTE`      | `300`             | Per client IP, all endpoints                                                                                            |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | `10`              | Sign-in, registration, password endpoints                                                                               |
+| `MAIL_TRANSPORT`             | `log`             | `smtp` in production                                                                                                    |
+| `SMTP_URL`, `MAIL_FROM`      | —                 | Required when `MAIL_TRANSPORT=smtp`                                                                                     |
+| `SMS_TRANSPORT`              | `log`             | `termii` or `africastalking` in production. `log` is refused on an https site, because it shows sign-up codes on screen |
+| `SMS_SENDER_ID`              | —                 | Registered sender ID, up to 11 characters. Required for Termii                                                          |
+| `TERMII_API_KEY`             | —                 | Required when `SMS_TRANSPORT=termii`                                                                                    |
+| `TERMII_CHANNEL`             | `dnd`             | `dnd` reaches numbers on Do-Not-Disturb, which codes need                                                               |
+| `AT_USERNAME`, `AT_API_KEY`  | —                 | Required when `SMS_TRANSPORT=africastalking` (`sandbox` for testing)                                                    |
+| `LOG_LEVEL`                  | `info`            | `debug` for troubleshooting                                                                                             |
 
 The API refuses to start if the configuration is invalid, and prints exactly which variable is wrong.

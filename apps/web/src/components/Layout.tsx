@@ -1,3 +1,4 @@
+import { formatPhone } from "@fwp/shared";
 import { LANGUAGES, LANGUAGE_KEYS, type Language } from "@fwp/shared";
 import {
   Briefcase,
@@ -151,7 +152,7 @@ function UserMenu() {
       <div id="user-menu" ref={menuRef} popover="auto" className="menu" role="menu">
         <div className="menu-header">
           <strong>{user.fullName}</strong>
-          <span className="subtle">{user.email}</span>
+          <span className="subtle">{user.email ?? formatPhone(user.phone ?? "")}</span>
         </div>
         <Link to={home} onClick={close} role="menuitem">
           {user.role === "admin" ? <Shield size={17} /> : <LayoutDashboard size={17} />}
@@ -253,7 +254,7 @@ function Header() {
               <Avatar name={user.fullName} size={40} />
               <div>
                 <strong>{user.fullName}</strong>
-                <div className="subtle">{user.email}</div>
+                <div className="subtle">{user.email ?? formatPhone(user.phone ?? "")}</div>
               </div>
             </div>
           )}
