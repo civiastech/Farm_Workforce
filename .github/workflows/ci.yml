@@ -74,7 +74,14 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' $base/api/auth/login)
           test "$code" = "403"
           curl -fsS -H "Origin: $base" -H 'Content-Type: application/json' \
-            -d '{"email":"worker@demo.farmworkforce.ng","password":"demo-password-123"}' $base/api/auth/login | grep -q '"role":"worker"'
+            -d '{"identifier":"0803 123 4567","password":"demo-password-123"}' $base/api/auth/login | grep -q '"role":"worker"'
+          # Link-preview bots get the job's details; browsers get the app.
+          job=$(curl -fsS "$base/api/jobs?pageSize=1" | grep -o '"id":"[0-9a-f-]\{36\}"' | head -1 | cut -d'"' -f4)
+          curl -fsS -A 'WhatsApp/2.24 A' "$base/jobs/$job" | grep -q 'property="og:title"'
+          curl -fsS -A 'Mozilla/5.0' "$base/jobs/$job" | grep -q '<div id="root">'
+          curl -fsS $base/robots.txt | grep -q "Sitemap: $base/sitemap.xml"
+          curl -fsS $base/sitemap.xml | grep -q "/jobs/$job"
+          curl -fsSI $base/og-image.png | grep -qi 'content-type: image/png'
       - name: Logs on failure
         if: failure()
         run: docker compose logs
