@@ -25,7 +25,9 @@
     "db:down": "docker compose -f compose.dev.yaml down",
     "db:generate": "npm run db:generate -w @fwp/api",
     "db:migrate": "npm run db:migrate -w @fwp/api",
-    "db:seed": "npm run db:seed -w @fwp/api"
+    "db:seed": "npm run db:seed -w @fwp/api",
+    "translations:export": "tsx scripts/translations.ts export",
+    "translations:import": "tsx scripts/translations.ts import"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
@@ -34,6 +36,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.0.0",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1"
   }

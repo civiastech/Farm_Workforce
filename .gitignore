@@ -9,3 +9,6 @@ coverage/
 !.env.example
 backups/
 !.env.production.example
+
+# Translator spreadsheets (npm run translations:export)
+translations/

@@ -4,16 +4,29 @@ The interface is available in six languages: English, Naijá (Nigerian Pidgin), 
 
 > **Status:** English is the source text. French is a careful translation. **Naijá, Hausa, Yorùbá and Igbo were machine-drafted and must be reviewed by native speakers before launch.** They are understandable, but wording, tone and agricultural vocabulary need a fluent eye.
 
+## Reviewing in a spreadsheet (recommended)
+
+Reviewers don't need to touch code.
+
+1. A developer runs `npm run translations:export`. It writes `translations/review-<lang>.csv` for each language (`pcm`, `ha`, `yo`, `ig`, `fr`).
+2. Send the file to the reviewer. It opens in Excel or Google Sheets, with columns **key**, **english**, **current**, **corrected** and **notes**.
+3. The reviewer reads the **current** column next to the English. Where it's wrong or unnatural, they type the better text in **corrected**, and can explain in **notes**. Rows that are fine stay empty.
+4. Save as CSV (UTF-8) with the same file name, then run `npm run translations:import -- translations/review-yo.csv`.
+5. The import applies the corrections and lists any it refused, for example a missing `{placeholder}` or tone marks in an SMS text. Then run `npx prettier --write apps && npm run check`, and commit.
+
+Rows whose key starts with `sms.` are the text messages sent to phones. Keep them in plain letters with no tone marks (ẹ → e, ọ → o, ṣ → s, ƙ → k). Special letters switch an SMS to an encoding that fits only 70 characters instead of 160, which makes each message cost two or three times as much.
+
 ## Where the text lives
 
-| File                       | Language                  |
-| -------------------------- | ------------------------- |
-| `apps/web/src/i18n/en.ts`  | English (source of truth) |
-| `apps/web/src/i18n/pcm.ts` | Naijá (Nigerian Pidgin)   |
-| `apps/web/src/i18n/ha.ts`  | Hausa                     |
-| `apps/web/src/i18n/yo.ts`  | Yorùbá                    |
-| `apps/web/src/i18n/ig.ts`  | Igbo                      |
-| `apps/web/src/i18n/fr.ts`  | French                    |
+| File                           | Language                  |
+| ------------------------------ | ------------------------- |
+| `apps/web/src/i18n/en.ts`      | English (source of truth) |
+| `apps/web/src/i18n/pcm.ts`     | Naijá (Nigerian Pidgin)   |
+| `apps/web/src/i18n/ha.ts`      | Hausa                     |
+| `apps/web/src/i18n/yo.ts`      | Yorùbá                    |
+| `apps/web/src/i18n/ig.ts`      | Igbo                      |
+| `apps/web/src/i18n/fr.ts`      | French                    |
+| `apps/api/src/lib/messages.ts` | SMS texts, all languages  |
 
 Each file is a list of `"key": "text"` lines in the same order as the English file, so a reviewer can put the two side by side.
 
