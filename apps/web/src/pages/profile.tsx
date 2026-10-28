@@ -1,5 +1,5 @@
 import {
-  JOB_CATEGORIES,
+  JOB_CATEGORY_KEYS,
   NIGERIAN_STATES,
   employerProfileSchema,
   workerProfileSchema,
@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Building2, MapPin, Sparkles, UserRound } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Alert, Avatar, Field, Options, QueryError, Spinner } from "../components/ui";
+import { useI18n } from "../i18n";
 import { api } from "../lib/api";
 import { meQueryKey } from "../lib/auth";
 import { useFormSubmit } from "../lib/forms";
@@ -16,11 +17,12 @@ import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
 
 export function ProfilePage() {
+  const { t } = useI18n();
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => api.get<ProfileResponse>("/me/profile") });
   const [params] = useSearchParams();
   const isWelcome = params.get("welcome") === "1";
   const isEmployer = profile.data?.user.role === "employer";
-  usePageTitle(isEmployer ? "Organisation profile" : "My profile");
+  usePageTitle(isEmployer ? t("profile.employerTitle") : t("nav.myProfile"));
 
   if (profile.isLoading) return <Spinner />;
   if (profile.error) return <QueryError error={profile.error} retry={() => profile.refetch()} />;
@@ -33,19 +35,15 @@ export function ProfilePage() {
           <Avatar name={data.user.fullName} size={56} />
           <div>
             <h1 className="display" style={{ margin: 0 }}>
-              {isEmployer ? "Organisation profile" : "Your worker profile"}
+              {isEmployer ? t("profile.employerTitle") : t("profile.workerTitle")}
             </h1>
-            <p className="muted">
-              {isEmployer
-                ? "Workers see this on every job you post."
-                : "Employers see this when you apply. Your phone and email stay private until they shortlist you."}
-            </p>
+            <p className="muted">{isEmployer ? t("profile.employerLead") : t("profile.workerLead")}</p>
           </div>
         </div>
       </div>
       {isWelcome && (
-        <Alert tone="success" title="Welcome to Farm Workforce!">
-          Add a few details below — it takes about a minute and you only do it once.
+        <Alert tone="success" title={t("profile.welcomeTitle")}>
+          {t("profile.welcomeBody")}
         </Alert>
       )}
       {isEmployer ? <EmployerProfileForm data={data} /> : <WorkerProfileForm data={data} />}
@@ -54,6 +52,7 @@ export function ProfilePage() {
 }
 
 function useProfileSaved() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -61,7 +60,7 @@ function useProfileSaved() {
   return (data: ProfileResponse) => {
     queryClient.setQueryData(["profile"], data);
     queryClient.setQueryData(meQueryKey, { user: data.user });
-    toast("Profile saved.");
+    toast(t("profile.saved"));
     const next = params.get("next");
     const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
     if (safeNext) navigate(safeNext, { replace: true });
@@ -70,6 +69,7 @@ function useProfileSaved() {
 }
 
 function WorkerProfileForm({ data }: { data: ProfileResponse }) {
+  const { t } = useI18n();
   const worker = data.worker;
   const onSaved = useProfileSaved();
   const { onSubmit, fieldErrors, formError, isPending } = useFormSubmit(
@@ -94,22 +94,22 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
 
       <section className="form-section">
         <h2>
-          <MapPin size={18} /> Where you can work
+          <MapPin size={18} /> {t("profile.whereWork")}
         </h2>
         <div className="form-grid">
-          <Field label="State you live in" name="state" error={fieldErrors.state}>
+          <Field label={t("profile.stateLive")} name="state" error={fieldErrors.state}>
             {(props) => (
               <select className="select" defaultValue={worker?.state ?? ""} {...props}>
-                <Options items={NIGERIAN_STATES} placeholder="Choose a state" />
+                <Options items={NIGERIAN_STATES} placeholder={t("common.chooseState")} />
               </select>
             )}
           </Field>
-          <Field label="Town or LGA" optional name="town" error={fieldErrors.town}>
+          <Field label={t("common.townLga")} optional name="town" error={fieldErrors.town}>
             {(props) => (
               <input
                 className="input"
                 defaultValue={worker?.town ?? ""}
-                placeholder="e.g. Ogbomoso"
+                placeholder={t("profile.townPlaceholder")}
                 {...props}
               />
             )}
@@ -119,17 +119,22 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
 
       <section className="form-section">
         <h2>
-          <Sparkles size={18} /> Skills &amp; experience
+          <Sparkles size={18} /> {t("profile.skillsSection")}
         </h2>
         <div className="form-grid">
-          <Field label="Main type of work" name="primaryCategory" error={fieldErrors.primaryCategory}>
+          <Field label={t("profile.mainWork")} name="primaryCategory" error={fieldErrors.primaryCategory}>
             {(props) => (
               <select className="select" defaultValue={worker?.primaryCategory ?? ""} {...props}>
-                <Options items={JOB_CATEGORIES} placeholder="Choose one" />
+                <option value="">{t("common.chooseOne")}</option>
+                {JOB_CATEGORY_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {t(`category.${key}`)}
+                  </option>
+                ))}
               </select>
             )}
           </Field>
-          <Field label="Years of farm experience" name="yearsExperience" error={fieldErrors.yearsExperience}>
+          <Field label={t("profile.years")} name="yearsExperience" error={fieldErrors.yearsExperience}>
             {(props) => (
               <input
                 className="input"
@@ -144,16 +149,16 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
           </Field>
           <Field
             className="full"
-            label="Skills"
+            label={t("profile.skills")}
             name="skills"
             error={fieldErrors.skills ?? fieldErrors["skills.0"]}
-            hint="Separate with commas, e.g. planting, tractor driving, poultry feeding"
+            hint={t("profile.skillsHint")}
           >
             {(props) => (
               <input
                 className="input"
                 defaultValue={worker?.skills.join(", ") ?? ""}
-                placeholder="planting, weeding, harvesting"
+                placeholder={t("profile.skillsPlaceholder")}
                 {...props}
               />
             )}
@@ -163,14 +168,14 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
 
       <section className="form-section">
         <h2>
-          <UserRound size={18} /> About you
+          <UserRound size={18} /> {t("profile.aboutYou")}
         </h2>
         <Field
-          label="Short bio"
+          label={t("profile.bio")}
           optional
           name="bio"
           error={fieldErrors.bio}
-          hint="A few sentences about your experience and what work you're looking for."
+          hint={t("profile.bioHint")}
           counter={{ max: 1000, initial: worker?.bio?.length ?? 0 }}
         >
           {(props) => (
@@ -179,8 +184,8 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
         </Field>
         <label className="switch-row">
           <div>
-            <strong>Available for work now</strong>
-            <span>Employers can see that you're ready to start.</span>
+            <strong>{t("profile.available")}</strong>
+            <span>{t("profile.availableHint")}</span>
           </div>
           <input
             type="checkbox"
@@ -193,7 +198,7 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
 
       <div>
         <button className="btn btn-primary btn-lg" type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save profile"}
+          {isPending ? t("common.saving") : t("profile.save")}
         </button>
       </div>
     </form>
@@ -201,6 +206,7 @@ function WorkerProfileForm({ data }: { data: ProfileResponse }) {
 }
 
 function EmployerProfileForm({ data }: { data: ProfileResponse }) {
+  const { t } = useI18n();
   const employer = data.employer;
   const onSaved = useProfileSaved();
   const { onSubmit, fieldErrors, formError, isPending } = useFormSubmit(
@@ -214,25 +220,23 @@ function EmployerProfileForm({ data }: { data: ProfileResponse }) {
       {formError && <Alert tone="error">{formError}</Alert>}
       {employer &&
         (employer.verified ? (
-          <Alert tone="success" title="Verified employer">
+          <Alert tone="success" title={t("common.verifiedEmployer")}>
             <span className="icon-inline">
-              <BadgeCheck size={16} /> Your jobs show a verified badge.
+              <BadgeCheck size={16} /> {t("dash.verifiedBody")}
             </span>
           </Alert>
         ) : (
-          <Alert title="Verification pending">
-            Our team reviews new employers. Verified employers get a badge on every job and more applicants.
-          </Alert>
+          <Alert title={t("profile.pendingTitle")}>{t("profile.pendingBody")}</Alert>
         ))}
 
       <section className="form-section">
         <h2>
-          <Building2 size={18} /> Your organisation
+          <Building2 size={18} /> {t("profile.yourOrg")}
         </h2>
         <div className="form-grid">
           <Field
             className="full"
-            label="Farm or organisation name"
+            label={t("profile.orgName")}
             name="organisationName"
             error={fieldErrors.organisationName}
           >
@@ -241,28 +245,28 @@ function EmployerProfileForm({ data }: { data: ProfileResponse }) {
                 className="input"
                 autoComplete="organization"
                 defaultValue={employer?.organisationName ?? ""}
-                placeholder="e.g. GreenFields Produce"
+                placeholder={t("profile.orgPlaceholder")}
                 {...props}
               />
             )}
           </Field>
-          <Field label="State" name="state" error={fieldErrors.state}>
+          <Field label={t("common.state")} name="state" error={fieldErrors.state}>
             {(props) => (
               <select className="select" defaultValue={employer?.state ?? ""} {...props}>
-                <Options items={NIGERIAN_STATES} placeholder="Choose a state" />
+                <Options items={NIGERIAN_STATES} placeholder={t("common.chooseState")} />
               </select>
             )}
           </Field>
-          <Field label="Town or LGA" optional name="town" error={fieldErrors.town}>
+          <Field label={t("common.townLga")} optional name="town" error={fieldErrors.town}>
             {(props) => <input className="input" defaultValue={employer?.town ?? ""} {...props} />}
           </Field>
           <Field
             className="full"
-            label="About your farm"
+            label={t("profile.aboutFarm")}
             optional
             name="description"
             error={fieldErrors.description}
-            hint="What you grow or raise, farm size, and what it's like to work with you."
+            hint={t("profile.aboutFarmHint")}
             counter={{ max: 1500, initial: employer?.description?.length ?? 0 }}
           >
             {(props) => (
@@ -278,7 +282,7 @@ function EmployerProfileForm({ data }: { data: ProfileResponse }) {
       </section>
       <div>
         <button className="btn btn-primary btn-lg" type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save organisation"}
+          {isPending ? t("common.saving") : t("profile.saveOrg")}
         </button>
       </div>
     </form>

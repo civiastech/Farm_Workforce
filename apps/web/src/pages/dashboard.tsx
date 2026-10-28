@@ -16,41 +16,42 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { CSSProperties } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { Alert, Badge, EmptyState, JobCard, Meter, Spinner } from "../components/ui";
+import { useI18n, type MessageKey } from "../i18n";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { APPLICATION_STATUS_UI, JOB_STATUS_UI, greeting, timeAgo } from "../lib/format";
+import { APPLICATION_STATUS_TONE, greetingKey } from "../lib/format";
 import { usePageTitle } from "../lib/usePageTitle";
 
 export function DashboardLayout() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const isEmployer = user?.role === "employer";
-  const links: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
-    { to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true },
+  const links: { to: string; label: MessageKey; icon: LucideIcon; end?: boolean }[] = [
+    { to: "/dashboard", label: "dash.overview", icon: LayoutDashboard, end: true },
     ...(isEmployer
       ? [
-          { to: "/dashboard/jobs", label: "My jobs", icon: Briefcase, end: true },
-          { to: "/dashboard/jobs/new", label: "Post a job", icon: Plus },
+          { to: "/dashboard/jobs", label: "nav.myJobs" as const, icon: Briefcase, end: true },
+          { to: "/dashboard/jobs/new", label: "dash.postJob" as const, icon: Plus },
         ]
       : [
-          { to: "/dashboard/applications", label: "Applications", icon: FileText },
-          { to: "/jobs", label: "Find jobs", icon: Search },
+          { to: "/dashboard/applications", label: "dash.applications" as const, icon: FileText },
+          { to: "/jobs", label: "dash.findJobs" as const, icon: Search },
         ]),
-    { to: "/dashboard/profile", label: isEmployer ? "Organisation" : "My profile", icon: UserRound },
-    { to: "/dashboard/account", label: "Account & privacy", icon: ShieldCheck },
+    { to: "/dashboard/profile", label: isEmployer ? "dash.organisation" : "nav.myProfile", icon: UserRound },
+    { to: "/dashboard/account", label: "nav.account", icon: ShieldCheck },
   ];
 
   return (
     <div className="page">
       <div className="wrap dash-layout">
-        <nav className="dash-nav" aria-label="Dashboard">
-          <span className="section-label">{isEmployer ? "Employer" : "Worker"}</span>
+        <nav className="dash-nav" aria-label={t("nav.dashboard")}>
+          <span className="section-label">{isEmployer ? t("dash.employer") : t("dash.worker")}</span>
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end}>
               <Icon size={18} />
-              {label}
+              {t(label)}
             </NavLink>
           ))}
         </nav>
@@ -85,39 +86,40 @@ function StatCard({
 }
 
 interface ChecklistItem {
-  label: string;
+  label: MessageKey;
   done: boolean;
 }
 
 function ProfileStrength({ items, editLink }: { items: ChecklistItem[]; editLink: string }) {
+  const { t } = useI18n();
   const done = items.filter((i) => i.done).length;
   const percent = Math.round((done / items.length) * 100);
   return (
     <section className="panel panel-sm stack" aria-labelledby="strength-title">
       <div className="spread">
         <h2 id="strength-title" className="panel-title" style={{ margin: 0 }}>
-          Profile strength
+          {t("dash.strength")}
         </h2>
         <strong className="num">{percent}%</strong>
       </div>
-      <Meter value={percent} label="Profile strength" />
+      <Meter value={percent} label={t("dash.strength")} />
       {percent === 100 ? (
         <p className="muted" style={{ margin: 0 }}>
-          Your profile is complete. Great profiles get noticed first.
+          {t("dash.strengthDone")}
         </p>
       ) : (
         <ul className="checklist">
           {items.map((item) => (
             <li key={item.label} className={item.done ? "done" : ""}>
               <span className="check-dot">{item.done && <Check size={13} strokeWidth={3} />}</span>
-              {item.label}
+              {t(item.label)}
             </li>
           ))}
         </ul>
       )}
       {percent < 100 && (
         <Link className="btn btn-outline btn-sm" to={editLink}>
-          Improve profile <ArrowRight size={16} />
+          {t("dash.improve")} <ArrowRight size={16} />
         </Link>
       )}
     </section>
@@ -125,29 +127,22 @@ function ProfileStrength({ items, editLink }: { items: ChecklistItem[]; editLink
 }
 
 export function DashboardHome() {
-  usePageTitle("Dashboard");
+  const { t } = useI18n();
+  usePageTitle(t("nav.dashboard"));
   const { user } = useAuth();
   if (!user) return null;
-  const firstName = user.fullName.split(" ")[0];
+  const firstName = user.fullName.split(" ")[0] ?? "";
 
   return (
     <div className="stack-lg">
       <div className="page-head" style={{ marginBottom: 0 }}>
-        <h1 className="display">
-          {greeting()}, {firstName}
-        </h1>
-        <p className="muted">
-          {user.role === "employer"
-            ? "Here's what's happening with your jobs."
-            : "Here's where your applications stand."}
-        </p>
+        <h1 className="display">{t("dash.greeting", { greeting: t(greetingKey()), name: firstName })}</h1>
+        <p className="muted">{user.role === "employer" ? t("dash.employerLead") : t("dash.workerLead")}</p>
       </div>
       {!user.hasProfile && (
-        <Alert tone="warning" title="Finish setting up your account">
-          {user.role === "employer"
-            ? "Add your organisation details before posting your first job. "
-            : "Complete your profile so you can apply for jobs. "}
-          <Link to="/dashboard/profile">Complete profile →</Link>
+        <Alert tone="warning" title={t("dash.setupTitle")}>
+          {user.role === "employer" ? t("dash.setupEmployer") : t("dash.setupWorker")}{" "}
+          <Link to="/dashboard/profile">{t("dash.completeProfile")}</Link>
         </Alert>
       )}
       {user.role === "employer" ? <EmployerOverview /> : <WorkerOverview />}
@@ -156,6 +151,7 @@ export function DashboardHome() {
 }
 
 function WorkerOverview() {
+  const { t, timeAgo } = useI18n();
   const applications = useQuery({
     queryKey: ["my-applications"],
     queryFn: () => api.get<{ items: WorkerApplication[] }>("/me/applications"),
@@ -176,44 +172,44 @@ function WorkerOverview() {
   const suggestions = (recommended.data?.items ?? []).filter((j) => !appliedIds.has(j.id)).slice(0, 2);
 
   const checklist: ChecklistItem[] = [
-    { label: "Location and main type of work", done: !!worker },
-    { label: "At least 3 skills", done: (worker?.skills.length ?? 0) >= 3 },
-    { label: "Years of experience", done: (worker?.yearsExperience ?? 0) > 0 },
-    { label: "A short bio about you", done: !!worker?.bio },
-    { label: "First application sent", done: items.length > 0 },
+    { label: "dash.checkLocation", done: !!worker },
+    { label: "dash.checkSkills", done: (worker?.skills.length ?? 0) >= 3 },
+    { label: "dash.checkExperience", done: (worker?.yearsExperience ?? 0) > 0 },
+    { label: "dash.checkBio", done: !!worker?.bio },
+    { label: "dash.checkFirstApp", done: items.length > 0 },
   ];
 
   return (
     <>
       <div className="stat-cards">
-        <StatCard icon={FileText} value={items.length} label="Applications sent" />
-        <StatCard icon={Inbox} value={active} label="In progress" />
-        <StatCard icon={Star} value={shortlisted} label="Shortlisted or hired" tone="gold" />
+        <StatCard icon={FileText} value={items.length} label={t("dash.statSent")} />
+        <StatCard icon={Inbox} value={active} label={t("dash.statProgress")} />
+        <StatCard icon={Star} value={shortlisted} label={t("dash.statShortlisted")} tone="gold" />
       </div>
 
       <div className="dash-grid">
         <section className="panel panel-sm" aria-labelledby="recent-title">
           <div className="spread" style={{ marginBottom: 6 }}>
             <h2 id="recent-title" className="panel-title" style={{ margin: 0 }}>
-              Recent applications
+              {t("dash.recent")}
             </h2>
             {items.length > 0 && (
               <Link className="link" to="/dashboard/applications" style={{ fontSize: "0.9rem" }}>
-                View all
+                {t("common.viewAll")}
               </Link>
             )}
           </div>
           {items.length === 0 ? (
             <EmptyState
               icon={FileText}
-              title="No applications yet"
+              title={t("dash.noAppsTitle")}
               action={
                 <Link className="btn btn-primary" to="/jobs">
-                  Find jobs
+                  {t("dash.findJobs")}
                 </Link>
               }
             >
-              When you apply for a job, you can follow its progress here.
+              {t("dash.noAppsBody")}
             </EmptyState>
           ) : (
             <ul className="compact-list">
@@ -226,8 +222,8 @@ function WorkerOverview() {
                         {a.job.organisationName} · {timeAgo(a.createdAt)}
                       </span>
                     </div>
-                    <Badge tone={APPLICATION_STATUS_UI[a.status].tone} dot>
-                      {APPLICATION_STATUS_UI[a.status].label}
+                    <Badge tone={APPLICATION_STATUS_TONE[a.status]} dot>
+                      {t(`appStatus.${a.status}`)}
                     </Badge>
                   </Link>
                 </li>
@@ -242,10 +238,10 @@ function WorkerOverview() {
         <section aria-labelledby="recommended-title">
           <div className="spread" style={{ marginBottom: 14 }}>
             <h2 id="recommended-title" className="display" style={{ fontSize: "1.5rem", margin: 0 }}>
-              Recommended for you
+              {t("dash.recommended")}
             </h2>
             <Link className="link" to={`/jobs?category=${worker?.primaryCategory}`}>
-              More like this
+              {t("dash.moreLikeThis")}
             </Link>
           </div>
           <div className="job-list">
@@ -260,6 +256,7 @@ function WorkerOverview() {
 }
 
 function EmployerOverview() {
+  const { t } = useI18n();
   const jobs = useQuery({
     queryKey: ["employer-jobs"],
     queryFn: () => api.get<{ items: EmployerJob[] }>("/employer/jobs"),
@@ -277,33 +274,33 @@ function EmployerOverview() {
   );
 
   const checklist: ChecklistItem[] = [
-    { label: "Organisation name and location", done: !!employer },
-    { label: "A description of your farm", done: !!employer?.description },
-    { label: "First job posted", done: items.length > 0 },
-    { label: "Verified by our team", done: !!employer?.verified },
+    { label: "dash.checkOrg", done: !!employer },
+    { label: "dash.checkDescription", done: !!employer?.description },
+    { label: "dash.checkFirstJob", done: items.length > 0 },
+    { label: "dash.checkVerified", done: !!employer?.verified },
   ];
 
   return (
     <>
       <div className="stat-cards">
-        <StatCard icon={Briefcase} value={open} label="Open jobs" />
-        <StatCard icon={Inbox} value={newApplicants} label="New applicants" tone="gold" />
-        <StatCard icon={Users} value={totalApplicants} label="Total applicants" />
+        <StatCard icon={Briefcase} value={open} label={t("dash.statOpen")} />
+        <StatCard icon={Inbox} value={newApplicants} label={t("dash.statNew")} tone="gold" />
+        <StatCard icon={Users} value={totalApplicants} label={t("dash.statTotal")} />
       </div>
 
       <div className="dash-grid">
         <section className="panel panel-sm" aria-labelledby="jobs-title">
           <div className="spread" style={{ marginBottom: 6 }}>
             <h2 id="jobs-title" className="panel-title" style={{ margin: 0 }}>
-              Your jobs
+              {t("dash.yourJobs")}
             </h2>
             <Link className="btn btn-primary btn-sm" to="/dashboard/jobs/new">
-              <Plus size={16} /> Post a job
+              <Plus size={16} /> {t("dash.postJob")}
             </Link>
           </div>
           {items.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No jobs posted yet">
-              Clear pay and a good description attract the best applicants.
+            <EmptyState icon={Briefcase} title={t("dash.noJobsTitle")}>
+              {t("dash.noJobsBody")}
             </EmptyState>
           ) : (
             <ul className="compact-list">
@@ -313,13 +310,15 @@ function EmployerOverview() {
                     <div className="grow">
                       <strong>{job.title}</strong>
                       <span className="subtle">
-                        {job.town}, {job.state} · <JobStatusText status={job.status} />
+                        {job.town}, {job.state} · {t(`jobStatus.${job.status}`)}
                       </span>
                     </div>
                     {(job.applicationCounts.submitted ?? 0) > 0 && (
-                      <Badge tone="new">{job.applicationCounts.submitted} new</Badge>
+                      <Badge tone="new">
+                        {t("dash.newCount", { n: job.applicationCounts.submitted ?? 0 })}
+                      </Badge>
                     )}
-                    <ArrowRight size={17} style={{ color: "var(--text-subtle)" } as CSSProperties} />
+                    <ArrowRight size={17} style={{ color: "var(--text-subtle)" }} />
                   </Link>
                 </li>
               ))}
@@ -329,9 +328,9 @@ function EmployerOverview() {
         <div className="stack">
           <ProfileStrength items={checklist} editLink="/dashboard/profile" />
           {employer?.verified && (
-            <Alert tone="success" title="Verified employer">
+            <Alert tone="success" title={t("common.verifiedEmployer")}>
               <span className="icon-inline">
-                <BadgeCheck size={16} /> Your jobs show a verified badge.
+                <BadgeCheck size={16} /> {t("dash.verifiedBody")}
               </span>
             </Alert>
           )}
@@ -339,8 +338,4 @@ function EmployerOverview() {
       </div>
     </>
   );
-}
-
-function JobStatusText({ status }: { status: EmployerJob["status"] }) {
-  return <>{JOB_STATUS_UI[status].label}</>;
 }

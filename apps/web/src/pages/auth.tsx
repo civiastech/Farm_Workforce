@@ -11,6 +11,7 @@ import { ArrowLeft, Briefcase, HandCoins, Lock, MailCheck, Sprout, Users, Wallet
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Alert, Field, FieldsIllustration, Options, PasswordInput } from "../components/ui";
+import { useI18n } from "../i18n";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useFormSubmit } from "../lib/forms";
@@ -28,6 +29,12 @@ function landingFor(user: CurrentUser) {
 }
 
 function AuthShell({ children }: { children: ReactNode }) {
+  const { t, tn } = useI18n();
+  const benefits = [
+    { icon: HandCoins, title: t("auth.b1t"), body: t("auth.b1b") },
+    { icon: Wallet, title: t("auth.b2t"), body: t("auth.b2b") },
+    { icon: Lock, title: t("auth.b3t"), body: t("auth.b3b") },
+  ];
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
@@ -36,37 +43,21 @@ function AuthShell({ children }: { children: ReactNode }) {
             <Sprout size={16} /> Farm Workforce
           </span>
           <h2 className="display" style={{ marginTop: 18 }}>
-            The trusted way to find <em>farm work</em> in Nigeria.
+            {tn("auth.asideTitle", { em: <em>{t("auth.asideEm")}</em> })}
           </h2>
         </div>
         <ul>
-          <li>
-            <span className="tile-icon">
-              <HandCoins size={20} />
-            </span>
-            <div>
-              <strong>Free for workers, always</strong>
-              No fees to register, apply or start work.
-            </div>
-          </li>
-          <li>
-            <span className="tile-icon">
-              <Wallet size={20} />
-            </span>
-            <div>
-              <strong>Pay on every listing</strong>
-              Know what a job pays before you apply.
-            </div>
-          </li>
-          <li>
-            <span className="tile-icon">
-              <Lock size={20} />
-            </span>
-            <div>
-              <strong>Your number stays private</strong>
-              Shared only when an employer shortlists you.
-            </div>
-          </li>
+          {benefits.map(({ icon: Icon, title, body }) => (
+            <li key={title}>
+              <span className="tile-icon">
+                <Icon size={20} />
+              </span>
+              <div>
+                <strong>{title}</strong>
+                {body}
+              </div>
+            </li>
+          ))}
         </ul>
         <FieldsIllustration className="fields" />
       </aside>
@@ -78,7 +69,8 @@ function AuthShell({ children }: { children: ReactNode }) {
 }
 
 export function LoginPage() {
-  usePageTitle("Sign in");
+  const { t } = useI18n();
+  usePageTitle(t("nav.signIn"));
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -97,11 +89,11 @@ export function LoginPage() {
 
   return (
     <AuthShell>
-      <h1 className="display">Welcome back</h1>
-      <p className="lead">Sign in to manage your profile, jobs and applications.</p>
+      <h1 className="display">{t("login.title")}</h1>
+      <p className="lead">{t("login.lead")}</p>
       <form className="form" onSubmit={onSubmit} noValidate>
         {formError && <Alert tone="error">{formError}</Alert>}
-        <Field label="Email address" name="email" error={fieldErrors.email}>
+        <Field label={t("common.email")} name="email" error={fieldErrors.email}>
           {(props) => (
             <input
               className="input"
@@ -113,25 +105,25 @@ export function LoginPage() {
           )}
         </Field>
         <Field
-          label="Password"
+          label={t("common.password")}
           name="password"
           error={fieldErrors.password}
           hint={
             <Link className="link" to="/forgot-password">
-              Forgot your password?
+              {t("login.forgot")}
             </Link>
           }
         >
           {(props) => <PasswordInput autoComplete="current-password" {...props} />}
         </Field>
         <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={isPending}>
-          {isPending ? "Signing in…" : "Sign in"}
+          {isPending ? t("login.submitting") : t("nav.signIn")}
         </button>
       </form>
       <p className="auth-switch">
-        New to Farm Workforce?{" "}
+        {t("login.new")}{" "}
         <Link className="link" to={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`}>
-          Create a free account
+          {t("login.create")}
         </Link>
       </p>
     </AuthShell>
@@ -139,7 +131,8 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
-  usePageTitle("Create your account");
+  const { t, tn, lang } = useI18n();
+  usePageTitle(t("register.title"));
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -167,12 +160,12 @@ export function RegisterPage() {
 
   return (
     <AuthShell>
-      <h1 className="display">Create your free account</h1>
-      <p className="lead">Join farms and workers across Nigeria.</p>
+      <h1 className="display">{t("register.title")}</h1>
+      <p className="lead">{t("register.lead")}</p>
       <form className="form" onSubmit={onSubmit} noValidate>
         {formError && <Alert tone="error">{formError}</Alert>}
         <fieldset className="choice-group">
-          <legend className="visually-hidden">I am…</legend>
+          <legend className="visually-hidden">{t("register.iam")}</legend>
           <label className="choice">
             <input
               type="radio"
@@ -184,8 +177,8 @@ export function RegisterPage() {
             <span className="tile-icon">
               <Users size={19} />
             </span>
-            <strong>Looking for work</strong>
-            <span>Find jobs and apply free</span>
+            <strong>{t("register.worker")}</strong>
+            <span>{t("register.workerSub")}</span>
           </label>
           <label className="choice">
             <input
@@ -198,16 +191,21 @@ export function RegisterPage() {
             <span className="tile-icon gold">
               <Briefcase size={19} />
             </span>
-            <strong>Hiring workers</strong>
-            <span>Post jobs and shortlist</span>
+            <strong>{t("register.employer")}</strong>
+            <span>{t("register.employerSub")}</span>
           </label>
         </fieldset>
-        <Field label="Full name" name="fullName" error={fieldErrors.fullName}>
+        <Field label={t("common.fullName")} name="fullName" error={fieldErrors.fullName}>
           {(props) => (
-            <input className="input" autoComplete="name" placeholder="e.g. Ade Okafor" {...props} />
+            <input
+              className="input"
+              autoComplete="name"
+              placeholder={t("register.namePlaceholder")}
+              {...props}
+            />
           )}
         </Field>
-        <Field label="Email address" name="email" error={fieldErrors.email}>
+        <Field label={t("common.email")} name="email" error={fieldErrors.email}>
           {(props) => (
             <input
               className="input"
@@ -219,10 +217,10 @@ export function RegisterPage() {
           )}
         </Field>
         <Field
-          label="Mobile number"
+          label={t("common.phone")}
           name="phone"
           error={fieldErrors.phone}
-          hint={role === "worker" ? "Shared with an employer only after they shortlist you." : undefined}
+          hint={role === "worker" ? t("register.phoneHint") : undefined}
         >
           {(props) => (
             <div className="input-affix">
@@ -241,16 +239,16 @@ export function RegisterPage() {
           )}
         </Field>
         <Field
-          label="Password"
+          label={t("common.password")}
           name="password"
           error={fieldErrors.password}
-          hint={`At least ${PASSWORD_MIN_LENGTH} characters. A short phrase is easy to remember.`}
+          hint={t("register.passwordHint", { n: PASSWORD_MIN_LENGTH })}
         >
           {(props) => <PasswordInput autoComplete="new-password" {...props} />}
         </Field>
-        <Field label="Preferred language" name="preferredLanguage" error={fieldErrors.preferredLanguage}>
+        <Field label={t("common.language")} name="preferredLanguage" error={fieldErrors.preferredLanguage}>
           {(props) => (
-            <select className="select" defaultValue="en" {...props}>
+            <select className="select" defaultValue={lang} {...props}>
               <Options items={LANGUAGES} />
             </select>
           )}
@@ -259,15 +257,18 @@ export function RegisterPage() {
           <label className="checkbox">
             <input type="checkbox" name="acceptTerms" aria-invalid={!!fieldErrors.acceptTerms} />
             <span>
-              I agree to the{" "}
-              <Link className="link" to="/terms" target="_blank">
-                terms of use
-              </Link>{" "}
-              and have read the{" "}
-              <Link className="link" to="/privacy" target="_blank">
-                privacy notice
-              </Link>
-              .
+              {tn("register.terms", {
+                terms: (
+                  <Link className="link" to="/terms" target="_blank">
+                    {t("register.termsLink")}
+                  </Link>
+                ),
+                privacy: (
+                  <Link className="link" to="/privacy" target="_blank">
+                    {t("register.privacyLink")}
+                  </Link>
+                ),
+              })}
             </span>
           </label>
           {fieldErrors.acceptTerms && (
@@ -277,13 +278,13 @@ export function RegisterPage() {
           )}
         </div>
         <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={isPending}>
-          {isPending ? "Creating account…" : "Create account"}
+          {isPending ? t("register.submitting") : t("register.submit")}
         </button>
       </form>
       <p className="auth-switch">
-        Already registered?{" "}
+        {t("register.already")}{" "}
         <Link className="link" to="/login">
-          Sign in
+          {t("nav.signIn")}
         </Link>
       </p>
     </AuthShell>
@@ -291,7 +292,8 @@ export function RegisterPage() {
 }
 
 export function ForgotPasswordPage() {
-  usePageTitle("Reset your password");
+  const { t } = useI18n();
+  usePageTitle(t("forgot.title"));
   const { onSubmit, fieldErrors, formError, isPending, mutation } = useFormSubmit(
     forgotPasswordSchema,
     (values) => api.post("/auth/password/forgot", values),
@@ -300,30 +302,29 @@ export function ForgotPasswordPage() {
   return (
     <AuthShell>
       <Link className="breadcrumb" to="/login">
-        <ArrowLeft size={17} /> Back to sign in
+        <ArrowLeft size={17} /> {t("forgot.back")}
       </Link>
       {mutation.isSuccess ? (
         <div className="stack">
           <span className="tile-icon lg">
             <MailCheck size={26} />
           </span>
-          <h1 className="display">Check your email</h1>
+          <h1 className="display">{t("forgot.checkTitle")}</h1>
           <p className="lead" style={{ margin: 0 }}>
-            If an account exists for that address, we've sent a link to reset your password. It expires in 1
-            hour — check your spam folder if it doesn't arrive.
+            {t("forgot.checkBody")}
           </p>
         </div>
       ) : (
         <>
-          <h1 className="display">Reset your password</h1>
-          <p className="lead">Enter your email and we'll send you a link to choose a new password.</p>
+          <h1 className="display">{t("forgot.title")}</h1>
+          <p className="lead">{t("forgot.lead")}</p>
           <form className="form" onSubmit={onSubmit} noValidate>
             {formError && <Alert tone="error">{formError}</Alert>}
-            <Field label="Email address" name="email" error={fieldErrors.email}>
+            <Field label={t("common.email")} name="email" error={fieldErrors.email}>
               {(props) => <input className="input" type="email" autoComplete="email" {...props} />}
             </Field>
             <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={isPending}>
-              {isPending ? "Sending…" : "Send reset link"}
+              {isPending ? t("common.sending") : t("forgot.submit")}
             </button>
           </form>
         </>
@@ -333,7 +334,8 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
-  usePageTitle("Choose a new password");
+  const { t } = useI18n();
+  usePageTitle(t("reset.title"));
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -345,7 +347,7 @@ export function ResetPasswordPage() {
     {
       transform: (raw) => ({ ...raw, token }),
       onSuccess: () => {
-        toast("Password updated. Please sign in.");
+        toast(t("reset.done"));
         navigate("/login", { replace: true });
       },
     },
@@ -353,28 +355,28 @@ export function ResetPasswordPage() {
 
   return (
     <AuthShell>
-      <h1 className="display">Choose a new password</h1>
+      <h1 className="display">{t("reset.title")}</h1>
       {!token ? (
-        <Alert tone="error" title="This link is incomplete">
-          <Link to="/forgot-password">Request a new reset link</Link>.
+        <Alert tone="error" title={t("reset.incomplete")}>
+          <Link to="/forgot-password">{t("reset.requestNew")}</Link>
         </Alert>
       ) : (
         <>
-          <p className="lead">You'll be signed out on all other devices.</p>
+          <p className="lead">{t("reset.lead")}</p>
           <form className="form" onSubmit={onSubmit} noValidate>
             {(formError || fieldErrors.token) && (
-              <Alert tone="error">{formError ?? "This reset link is invalid."}</Alert>
+              <Alert tone="error">{formError ?? t("errors.invalid_reset_link")}</Alert>
             )}
             <Field
-              label="New password"
+              label={t("reset.newPassword")}
               name="password"
               error={fieldErrors.password}
-              hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
+              hint={t("reset.hint", { n: PASSWORD_MIN_LENGTH })}
             >
               {(props) => <PasswordInput autoComplete="new-password" {...props} />}
             </Field>
             <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Save new password"}
+              {isPending ? t("common.saving") : t("reset.submit")}
             </button>
           </form>
         </>

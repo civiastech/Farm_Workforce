@@ -82,7 +82,7 @@ The current setup comfortably serves a national launch on one modest server (2 v
 
 ## Roadmap ideas (not built)
 
+- Emails in the recipient's preferred language (the interface is already translated; see TRANSLATIONS.md).
 - SMS or WhatsApp notifications and phone-number login (OTP). Many workers rely on SMS more than email.
-- Translations of the interface. The preferred-language field is stored but not yet used.
 - In-app messaging between employer and shortlisted worker.
 - Error tracking (e.g. Sentry) and metrics. The hidden source maps are already generated.

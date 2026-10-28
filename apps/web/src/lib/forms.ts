@@ -1,6 +1,7 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import type { z } from "zod";
+import { useI18n } from "../i18n";
 import type { ApiError } from "./api";
 
 export type FieldErrors = Record<string, string>;
@@ -51,6 +52,7 @@ export function useFormSubmit<S extends z.ZodType, TResult>(
   } = {},
 ) {
   const { transform, ...mutationOptions } = options;
+  const { errorMessage } = useI18n();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const mutation = useMutation<TResult, ApiError, z.output<S>>({ mutationFn: submit, ...mutationOptions });
 
@@ -68,14 +70,17 @@ export function useFormSubmit<S extends z.ZodType, TResult>(
     setFieldErrors({});
     mutation.mutate(parsed.data, {
       onError: (error) => {
-        setFieldErrors(error.fields);
-        focusFirstError(form, error.fields);
+        // Errors with a known code (e.g. wrong_password) show the translated message on their fields.
+        const message = errorMessage(error);
+        const fields = Object.fromEntries(Object.keys(error.fields).map((field) => [field, message]));
+        setFieldErrors(fields);
+        focusFirstError(form, fields);
       },
     });
   }
 
   const formError =
-    mutation.error && Object.keys(mutation.error.fields).length === 0 ? mutation.error.message : null;
+    mutation.error && Object.keys(mutation.error.fields).length === 0 ? errorMessage(mutation.error) : null;
 
   return { onSubmit, fieldErrors, formError, isPending: mutation.isPending, mutation };
 }

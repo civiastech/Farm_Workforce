@@ -1,7 +1,8 @@
 import {
-  EMPLOYMENT_TYPES,
-  JOB_CATEGORIES,
+  EMPLOYMENT_TYPE_KEYS,
+  JOB_CATEGORY_KEYS,
   NIGERIAN_STATES,
+  PAY_PERIOD_KEYS,
   jobInputSchema,
   type Applicant,
   type ApplicationStatus,
@@ -41,9 +42,10 @@ import {
   QueryError,
   Spinner,
 } from "../components/ui";
+import { useI18n, type MessageKey } from "../i18n";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { APPLICATION_STATUS_UI, JOB_STATUS_UI, categoryLabel, timeAgo } from "../lib/format";
+import { APPLICATION_STATUS_TONE, JOB_STATUS_TONE } from "../lib/format";
 import { readForm, useFormSubmit } from "../lib/forms";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
@@ -51,7 +53,8 @@ import { usePageTitle } from "../lib/usePageTitle";
 // ---------------------------------------------------------------- My jobs
 
 export function EmployerJobsPage() {
-  usePageTitle("My jobs");
+  const { t, tp, timeAgo } = useI18n();
+  usePageTitle(t("nav.myJobs"));
   const jobs = useQuery({
     queryKey: ["employer-jobs"],
     queryFn: () => api.get<{ items: EmployerJob[] }>("/employer/jobs"),
@@ -65,24 +68,24 @@ export function EmployerJobsPage() {
     <div>
       <div className="page-head spread">
         <div>
-          <h1 className="display">My jobs</h1>
-          <p className="muted">Review applicants, edit listings and close jobs once they're filled.</p>
+          <h1 className="display">{t("nav.myJobs")}</h1>
+          <p className="muted">{t("ejobs.lead")}</p>
         </div>
         <Link className="btn btn-primary" to="/dashboard/jobs/new">
-          <Plus size={18} /> Post a job
+          <Plus size={18} /> {t("dash.postJob")}
         </Link>
       </div>
       {items.length === 0 ? (
         <EmptyState
           icon={Briefcase}
-          title="You haven't posted any jobs yet"
+          title={t("ejobs.emptyTitle")}
           action={
             <Link className="btn btn-primary" to="/dashboard/jobs/new">
-              Post your first job
+              {t("ejobs.postFirst")}
             </Link>
           }
         >
-          Clear pay and a good description attract the best applicants.
+          {t("dash.noJobsBody")}
         </EmptyState>
       ) : (
         <ul className="list">
@@ -101,36 +104,44 @@ export function EmployerJobsPage() {
                         <Link to={`/jobs/${job.id}`}>{job.title}</Link>
                       </h3>
                       <p className="subtle icon-inline" style={{ margin: 0, flexWrap: "wrap" }}>
-                        <MapPin size={14} /> {job.town}, {job.state} · {categoryLabel(job.category)} · posted{" "}
-                        {timeAgo(job.createdAt)}
+                        <MapPin size={14} /> {job.town}, {job.state} · {t(`category.${job.category}`)} ·{" "}
+                        {t("time.posted", { time: timeAgo(job.createdAt) })}
                       </p>
                     </div>
                   </div>
-                  <Badge tone={JOB_STATUS_UI[job.status].tone} dot>
-                    {JOB_STATUS_UI[job.status].label}
+                  <Badge tone={JOB_STATUS_TONE[job.status]} dot>
+                    {t(`jobStatus.${job.status}`)}
                   </Badge>
                 </div>
                 <div className="spread">
                   <div className="chips">
                     <span className="chip">
-                      <Users size={13} /> {total} applicant{total === 1 ? "" : "s"}
+                      <Users size={13} /> {tp("ejobs.applicants", total)}
                     </span>
                     {(counts.submitted ?? 0) > 0 && (
-                      <span className="chip chip-gold">{counts.submitted} new</span>
+                      <span className="chip chip-gold">
+                        {t("dash.newCount", { n: counts.submitted ?? 0 })}
+                      </span>
                     )}
                     {(counts.shortlisted ?? 0) > 0 && (
-                      <span className="chip chip-brand">{counts.shortlisted} shortlisted</span>
+                      <span className="chip chip-brand">
+                        {t("ejobs.shortlistedCount", { n: counts.shortlisted ?? 0 })}
+                      </span>
                     )}
-                    {(counts.hired ?? 0) > 0 && <span className="chip chip-brand">{counts.hired} hired</span>}
+                    {(counts.hired ?? 0) > 0 && (
+                      <span className="chip chip-brand">
+                        {t("ejobs.hiredCount", { n: counts.hired ?? 0 })}
+                      </span>
+                    )}
                   </div>
                   <div className="row">
                     {job.status !== "removed" && (
                       <Link className="btn btn-ghost btn-sm" to={`/dashboard/jobs/${job.id}/edit`}>
-                        <Pencil size={15} /> Edit
+                        <Pencil size={15} /> {t("ejobs.edit")}
                       </Link>
                     )}
                     <Link className="btn btn-primary btn-sm" to={`/dashboard/jobs/${job.id}/applicants`}>
-                      Review applicants
+                      {t("ejobs.review")}
                     </Link>
                   </div>
                 </div>
@@ -159,13 +170,13 @@ interface Preview {
   mealsProvided: boolean;
 }
 
-function toPreview(raw: Record<string, unknown>): Preview {
+function toPreview(raw: Record<string, unknown>, statePlaceholder: string): Preview {
   const num = (v: unknown) => Math.max(0, Number(v) || 0);
   return {
     title: String(raw.title ?? ""),
     category: (raw.category as JobCategory) || "general_labour",
     employmentType: (raw.employmentType as EmploymentType) || "full_time",
-    state: String(raw.state || "State"),
+    state: String(raw.state || statePlaceholder),
     town: String(raw.town ?? ""),
     payMin: num(raw.payMin),
     payMax: Math.max(num(raw.payMin), num(raw.payMax)),
@@ -177,9 +188,10 @@ function toPreview(raw: Record<string, unknown>): Preview {
 }
 
 export function JobEditorPage() {
+  const { t } = useI18n();
   const { id } = useParams();
   const isEdit = !!id;
-  usePageTitle(isEdit ? "Edit job" : "Post a job");
+  usePageTitle(isEdit ? t("editor.editTitle") : t("dash.postJob"));
   const { user } = useAuth();
 
   const existing = useQuery({
@@ -191,9 +203,8 @@ export function JobEditorPage() {
 
   if (user && !user.hasProfile) {
     return (
-      <Alert tone="warning" title="Add your organisation first">
-        Workers need to know who they'd be working for.{" "}
-        <Link to="/dashboard/profile">Complete profile →</Link>
+      <Alert tone="warning" title={t("editor.addOrgTitle")}>
+        {t("editor.addOrgBody")} <Link to="/dashboard/profile">{t("dash.completeProfile")}</Link>
       </Alert>
     );
   }
@@ -211,13 +222,17 @@ export function JobEditorPage() {
 }
 
 function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileResponse["employer"] }) {
+  const { t } = useI18n();
   const isEdit = !!job;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [createdAt] = useState(() => new Date().toISOString());
   const [preview, setPreview] = useState<Preview>(() =>
-    toPreview(job ? { ...job } : { payPeriod: "month", positions: 1, state: employer?.state ?? "" }),
+    toPreview(
+      job ? { ...job } : { payPeriod: "month", positions: 1, state: employer?.state ?? "" },
+      t("common.state"),
+    ),
   );
 
   const { onSubmit, fieldErrors, formError, isPending } = useFormSubmit(
@@ -232,7 +247,7 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
         queryClient.invalidateQueries({ queryKey: ["job", jobId] });
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
         queryClient.invalidateQueries({ queryKey: ["stats"] });
-        toast(isEdit ? "Job updated." : "Job posted! Workers can see it now.");
+        toast(isEdit ? t("editor.updated") : t("editor.posted"));
         navigate("/dashboard/jobs");
       },
     },
@@ -241,52 +256,62 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
   return (
     <div>
       <Link className="breadcrumb" to="/dashboard/jobs">
-        <ArrowLeft size={17} /> My jobs
+        <ArrowLeft size={17} /> {t("nav.myJobs")}
       </Link>
       <div className="page-head">
-        <h1 className="display">{isEdit ? "Edit job" : "Post a job"}</h1>
-        <p className="muted">Jobs with clear pay and conditions get more — and better — applicants.</p>
+        <h1 className="display">{isEdit ? t("editor.editTitle") : t("dash.postJob")}</h1>
+        <p className="muted">{t("editor.lead")}</p>
       </div>
 
       <div className="editor-layout">
         <form
           className="panel form"
           onSubmit={onSubmit}
-          onChange={(e) => setPreview(toPreview(readForm(e.currentTarget)))}
+          onChange={(e) => setPreview(toPreview(readForm(e.currentTarget), t("common.state")))}
           noValidate
         >
           {formError && <Alert tone="error">{formError}</Alert>}
 
           <section className="form-section">
             <h2>
-              <Briefcase size={18} /> The role
+              <Briefcase size={18} /> {t("editor.role")}
             </h2>
             <div className="form-grid">
               <Field
                 className="full"
-                label="Job title"
+                label={t("editor.jobTitle")}
                 name="title"
                 error={fieldErrors.title}
-                hint="Be specific, e.g. “Poultry attendant (layers)”"
+                hint={t("editor.jobTitleHint")}
                 counter={{ max: 120, initial: job?.title.length ?? 0 }}
               >
                 {(props) => <input className="input" maxLength={120} defaultValue={job?.title} {...props} />}
               </Field>
-              <Field label="Category" name="category" error={fieldErrors.category}>
+              <Field label={t("editor.category")} name="category" error={fieldErrors.category}>
                 {(props) => (
                   <select className="select" defaultValue={job?.category ?? ""} {...props}>
-                    <Options items={JOB_CATEGORIES} placeholder="Choose a category" />
+                    <option value="">{t("editor.chooseCategory")}</option>
+                    {JOB_CATEGORY_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {t(`category.${key}`)}
+                      </option>
+                    ))}
                   </select>
                 )}
               </Field>
-              <Field label="Job type" name="employmentType" error={fieldErrors.employmentType}>
+              <Field label={t("editor.jobType")} name="employmentType" error={fieldErrors.employmentType}>
                 {(props) => (
                   <select className="select" defaultValue={job?.employmentType ?? ""} {...props}>
-                    <Options items={EMPLOYMENT_TYPES} placeholder="Choose a type" />
+                    <option value="">{t("editor.chooseType")}</option>
+                    {EMPLOYMENT_TYPE_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {t(`employment.${key}`)}
+                      </option>
+                    ))}
                   </select>
                 )}
               </Field>
-              <Field label="Number of positions" name="positions" error={fieldErrors.positions}>
+              <Field label={t("editor.positions")} name="positions" error={fieldErrors.positions}>
                 {(props) => (
                   <input
                     className="input"
@@ -298,7 +323,7 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
                   />
                 )}
               </Field>
-              <Field label="Start date" optional name="startDate" error={fieldErrors.startDate}>
+              <Field label={t("job.startDate")} optional name="startDate" error={fieldErrors.startDate}>
                 {(props) => (
                   <input className="input" type="date" defaultValue={job?.startDate ?? ""} {...props} />
                 )}
@@ -308,17 +333,17 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 
           <section className="form-section">
             <h2>
-              <MapPin size={18} /> Location
+              <MapPin size={18} /> {t("editor.location")}
             </h2>
             <div className="form-grid">
-              <Field label="State" name="state" error={fieldErrors.state}>
+              <Field label={t("common.state")} name="state" error={fieldErrors.state}>
                 {(props) => (
                   <select className="select" defaultValue={job?.state ?? employer?.state ?? ""} {...props}>
-                    <Options items={NIGERIAN_STATES} placeholder="Choose a state" />
+                    <Options items={NIGERIAN_STATES} placeholder={t("common.chooseState")} />
                   </select>
                 )}
               </Field>
-              <Field label="Town / LGA" name="town" error={fieldErrors.town}>
+              <Field label={t("common.townLga")} name="town" error={fieldErrors.town}>
                 {(props) => (
                   <input className="input" defaultValue={job?.town ?? employer?.town ?? ""} {...props} />
                 )}
@@ -328,10 +353,10 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 
           <section className="form-section">
             <h2>
-              <Wallet size={18} /> Pay &amp; conditions
+              <Wallet size={18} /> {t("editor.payConditions")}
             </h2>
             <div className="form-grid">
-              <Field label="Minimum pay" name="payMin" error={fieldErrors.payMin}>
+              <Field label={t("editor.minPay")} name="payMin" error={fieldErrors.payMin}>
                 {(props) => (
                   <div className="input-affix">
                     <span className="affix">₦</span>
@@ -346,7 +371,7 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
                   </div>
                 )}
               </Field>
-              <Field label="Maximum pay" name="payMax" error={fieldErrors.payMax}>
+              <Field label={t("editor.maxPay")} name="payMax" error={fieldErrors.payMax}>
                 {(props) => (
                   <div className="input-affix">
                     <span className="affix">₦</span>
@@ -361,17 +386,26 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
                   </div>
                 )}
               </Field>
-              <Field className="full" label="Paid per" name="payPeriod" error={fieldErrors.payPeriod}>
+              <Field
+                className="full"
+                label={t("editor.paidPer")}
+                name="payPeriod"
+                error={fieldErrors.payPeriod}
+              >
                 {(props) => (
                   <select className="select" defaultValue={job?.payPeriod ?? "month"} {...props}>
-                    <Options items={{ day: "Day", week: "Week", month: "Month" }} />
+                    {PAY_PERIOD_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {t(`payPeriod.${key}`)}
+                      </option>
+                    ))}
                   </select>
                 )}
               </Field>
               <label className="switch-row full">
                 <div>
-                  <strong>Accommodation provided</strong>
-                  <span>Housing on or near the farm</span>
+                  <strong>{t("editor.accommodation")}</strong>
+                  <span>{t("editor.accommodationHint")}</span>
                 </div>
                 <input
                   type="checkbox"
@@ -382,8 +416,8 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
               </label>
               <label className="switch-row full">
                 <div>
-                  <strong>Meals provided</strong>
-                  <span>At least one meal a working day</span>
+                  <strong>{t("editor.meals")}</strong>
+                  <span>{t("editor.mealsHint")}</span>
                 </div>
                 <input
                   type="checkbox"
@@ -397,13 +431,13 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 
           <section className="form-section">
             <h2>
-              <FileText size={18} /> Description
+              <FileText size={18} /> {t("editor.description")}
             </h2>
             <Field
-              label="About the job"
+              label={t("job.about")}
               name="description"
               error={fieldErrors.description}
-              hint="Duties, working hours, experience needed, and how and when pay is made."
+              hint={t("editor.aboutHint")}
               counter={{ max: 5000, initial: job?.description.length ?? 0 }}
             >
               {(props) => (
@@ -420,13 +454,13 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 
           <section className="form-section">
             <h2>
-              <Eye size={18} /> Publishing
+              <Eye size={18} /> {t("editor.publishing")}
             </h2>
             <Field
-              label="Status"
+              label={t("editor.status")}
               name="status"
               error={fieldErrors.status}
-              hint="Drafts are only visible to you."
+              hint={t("editor.statusHint")}
             >
               {(props) => (
                 <select
@@ -434,9 +468,9 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
                   defaultValue={job?.status === "removed" ? "closed" : (job?.status ?? "open")}
                   {...props}
                 >
-                  <Options
-                    items={{ open: "Open — accepting applications", draft: "Draft", closed: "Closed" }}
-                  />
+                  <option value="open">{t("editor.statusOpen")}</option>
+                  <option value="draft">{t("jobStatus.draft")}</option>
+                  <option value="closed">{t("jobStatus.closed")}</option>
                 </select>
               )}
             </Field>
@@ -444,31 +478,30 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 
           <div className="row">
             <button className="btn btn-primary btn-lg" type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : isEdit ? "Save changes" : "Publish job"}
+              {isPending ? t("common.saving") : isEdit ? t("editor.save") : t("editor.publish")}
             </button>
             <Link className="btn btn-ghost" to="/dashboard/jobs">
-              Cancel
+              {t("common.cancel")}
             </Link>
           </div>
         </form>
 
-        <aside className="editor-preview" aria-label="Live preview">
+        <aside className="editor-preview" aria-label={t("editor.preview")}>
           <span className="eyebrow">
-            <Eye size={15} /> Live preview
+            <Eye size={15} /> {t("editor.preview")}
           </span>
           <JobCard
             job={{
               ...preview,
               createdAt,
               employer: {
-                organisationName: employer?.organisationName ?? "Your farm",
+                organisationName: employer?.organisationName ?? t("editor.yourFarm"),
                 verified: !!employer?.verified,
               },
             }}
           />
-          <Alert tone="warning" title="Fair hiring">
-            Never ask workers to pay a fee to apply or start work. Listings that do are removed and the
-            account suspended.
+          <Alert tone="warning" title={t("editor.fairTitle")}>
+            {t("editor.fairBody")}
           </Alert>
         </aside>
       </div>
@@ -479,29 +512,30 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
 // ---------------------------------------------------------------- Applicants
 
 const NEXT_ACTIONS: Partial<
-  Record<ApplicationStatus, { status: ApplicationStatus; label: string; primary?: boolean }[]>
+  Record<ApplicationStatus, { status: ApplicationStatus; label: MessageKey; primary?: boolean }[]>
 > = {
   submitted: [
-    { status: "shortlisted", label: "Shortlist", primary: true },
-    { status: "rejected", label: "Not suitable" },
+    { status: "shortlisted", label: "applicants.shortlist", primary: true },
+    { status: "rejected", label: "applicants.notSuitable" },
   ],
   shortlisted: [
-    { status: "hired", label: "Mark as hired", primary: true },
-    { status: "rejected", label: "Not suitable" },
+    { status: "hired", label: "applicants.markHired", primary: true },
+    { status: "rejected", label: "applicants.notSuitable" },
   ],
-  rejected: [{ status: "submitted", label: "Reconsider" }],
+  rejected: [{ status: "submitted", label: "applicants.reconsider" }],
 };
 
 type ApplicantTab = "all" | "submitted" | "shortlisted" | "hired" | "rejected";
-const TABS: [ApplicantTab, string][] = [
-  ["all", "All"],
-  ["submitted", "New"],
-  ["shortlisted", "Shortlisted"],
-  ["hired", "Hired"],
-  ["rejected", "Not selected"],
+const TABS: [ApplicantTab, MessageKey][] = [
+  ["all", "apps.all"],
+  ["submitted", "common.new"],
+  ["shortlisted", "appStatus.shortlisted"],
+  ["hired", "appStatus.hired"],
+  ["rejected", "appStatus.rejected"],
 ];
 
 export function JobApplicantsPage() {
+  const { t, tp, timeAgo, errorMessage } = useI18n();
   const { id = "" } = useParams();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -511,49 +545,45 @@ export function JobApplicantsPage() {
     queryKey: ["applicants", id],
     queryFn: () => api.get<{ items: Applicant[] }>(`/employer/jobs/${id}/applications`),
   });
-  usePageTitle(job.data ? `Applicants · ${job.data.title}` : "Applicants");
+  usePageTitle(job.data ? `${t("applicants.title")} · ${job.data.title}` : t("applicants.title"));
 
   const updateStatus = useMutation({
     mutationFn: ({ applicationId, status }: { applicationId: string; status: ApplicationStatus }) =>
       api.patch(`/applications/${applicationId}/status`, { status }),
     onSuccess: (_data, { status }) => {
-      toast(
-        status === "shortlisted"
-          ? "Shortlisted. Their contact details are now visible, and we've emailed them."
-          : `Applicant marked as ${APPLICATION_STATUS_UI[status].label.toLowerCase()}. They'll be notified by email.`,
-      );
+      toast(status === "shortlisted" ? t("applicants.shortlistedToast") : t("applicants.updatedToast"));
       queryClient.invalidateQueries({ queryKey: ["applicants", id] });
       queryClient.invalidateQueries({ queryKey: ["employer-jobs"] });
     },
-    onError: (error) => toast(error.message),
+    onError: (error) => toast(errorMessage(error)),
   });
 
   if (applicants.isLoading || job.isLoading) return <Spinner />;
   if (applicants.error) return <QueryError error={applicants.error} retry={() => applicants.refetch()} />;
   const items = applicants.data?.items ?? [];
-  const count = (t: ApplicantTab) =>
-    t === "all" ? items.length : items.filter((a) => a.status === t).length;
+  const count = (key: ApplicantTab) =>
+    key === "all" ? items.length : items.filter((a) => a.status === key).length;
   const visible = tab === "all" ? items : items.filter((a) => a.status === tab);
 
   return (
     <div>
       <Link className="breadcrumb" to="/dashboard/jobs">
-        <ArrowLeft size={17} /> My jobs
+        <ArrowLeft size={17} /> {t("nav.myJobs")}
       </Link>
       <div className="page-head">
-        <h1 className="display">Applicants</h1>
+        <h1 className="display">{t("applicants.title")}</h1>
         <p className="muted">
-          {job.data?.title} · {items.length} applicant{items.length === 1 ? "" : "s"}
+          {job.data?.title} · {tp("applicants.count", items.length)}
         </p>
       </div>
 
       {items.length === 0 ? (
-        <EmptyState icon={Inbox} title="No applicants yet">
-          Share your job link with your network to reach more workers.
+        <EmptyState icon={Inbox} title={t("applicants.emptyTitle")}>
+          {t("applicants.emptyBody")}
         </EmptyState>
       ) : (
         <>
-          <div className="tabs" role="tablist" aria-label="Filter applicants">
+          <div className="tabs" role="tablist" aria-label={t("applicants.tabs")}>
             {TABS.map(([key, label]) => (
               <button
                 key={key}
@@ -562,16 +592,13 @@ export function JobApplicantsPage() {
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
               >
-                {label} <span className="count">{count(key)}</span>
+                {t(label)} <span className="count">{count(key)}</span>
               </button>
             ))}
           </div>
-          <Alert>
-            Contact details appear once you shortlist someone. This protects workers from spam and scams.
-          </Alert>
+          <Alert>{t("applicants.contactNote")}</Alert>
           <ul className="list" style={{ marginTop: 16 }}>
             {visible.map((applicant) => {
-              const ui = APPLICATION_STATUS_UI[applicant.status];
               const w = applicant.worker;
               return (
                 <li key={applicant.id} className="list-card">
@@ -584,15 +611,15 @@ export function JobApplicantsPage() {
                       <div style={{ minWidth: 0 }}>
                         <h3>{w.fullName}</h3>
                         <p className="subtle" style={{ margin: 0 }}>
-                          {[w.town, w.state].filter(Boolean).join(", ") || "Location not given"}
-                          {w.primaryCategory && ` · ${categoryLabel(w.primaryCategory)}`}
+                          {[w.town, w.state].filter(Boolean).join(", ") || t("applicants.noLocation")}
+                          {w.primaryCategory && ` · ${t(`category.${w.primaryCategory}`)}`}
                           {w.yearsExperience !== null &&
-                            ` · ${w.yearsExperience} yr${w.yearsExperience === 1 ? "" : "s"} experience`}
+                            ` · ${t("applicants.years", { n: w.yearsExperience })}`}
                         </p>
                       </div>
                     </div>
-                    <Badge tone={ui.tone} dot>
-                      {ui.label}
+                    <Badge tone={APPLICATION_STATUS_TONE[applicant.status]} dot>
+                      {t(`appStatus.${applicant.status}`)}
                     </Badge>
                   </div>
                   {w.skills.length > 0 && (
@@ -616,12 +643,14 @@ export function JobApplicantsPage() {
                         <Phone size={15} /> {w.phone}
                       </a>
                       <a className="btn btn-outline btn-sm" href={`mailto:${w.email}`}>
-                        <Mail size={15} /> Email
+                        <Mail size={15} /> {t("applicants.email")}
                       </a>
                     </div>
                   )}
                   <div className="spread">
-                    <span className="subtle">Applied {timeAgo(applicant.createdAt)}</span>
+                    <span className="subtle">
+                      {t("time.applied", { time: timeAgo(applicant.createdAt) })}
+                    </span>
                     <div className="row">
                       {(NEXT_ACTIONS[applicant.status] ?? []).map((action) => (
                         <button
@@ -633,7 +662,7 @@ export function JobApplicantsPage() {
                             updateStatus.mutate({ applicationId: applicant.id, status: action.status })
                           }
                         >
-                          {action.label}
+                          {t(action.label)}
                         </button>
                       ))}
                     </div>
@@ -642,7 +671,7 @@ export function JobApplicantsPage() {
               );
             })}
           </ul>
-          {visible.length === 0 && <p className="muted">No applicants in this group yet.</p>}
+          {visible.length === 0 && <p className="muted">{t("applicants.noneInGroup")}</p>}
         </>
       )}
     </div>

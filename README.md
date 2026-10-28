@@ -4,12 +4,13 @@ A job marketplace that connects agricultural workers and farm employers across N
 
 **Stack:** React 19 + Vite (web) · Fastify 5 + Drizzle ORM (API) · PostgreSQL 17 · Docker Compose · Caddy (automatic HTTPS) · GitHub Actions
 
-| Doc                                          | What's in it                                              |
-| -------------------------------------------- | --------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system fits together, key design decisions        |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)     | Putting it live on a server with HTTPS, backups, updates  |
-| [docs/SECURITY.md](docs/SECURITY.md)         | Security controls and the pre-launch checklist            |
-| [docs/prototype/](docs/prototype/index.html) | The original static prototype, kept as a design reference |
+| Doc                                          | What's in it                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system fits together, key design decisions                |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)     | Putting it live on a server with HTTPS, backups, updates          |
+| [docs/SECURITY.md](docs/SECURITY.md)         | Security controls and the pre-launch checklist                    |
+| [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) | The six interface languages and how to review or add translations |
+| [docs/prototype/](docs/prototype/index.html) | The original static prototype, kept as a design reference         |
 
 ## Features
 
@@ -18,6 +19,7 @@ A job marketplace that connects agricultural workers and farm employers across N
 - **Privacy by design:** an applicant's phone and email are revealed only once they're shortlisted. Users can download all their data or delete their account.
 - **Trust & safety:** one-tap job reporting, a moderation queue, job takedown, verified-employer badges, and an audit log of security and moderation events.
 - **Accounts:** secure sessions, password reset by email, password change (signs out other devices), rate-limited sign-in.
+- **Six languages:** English, Naijá (Pidgin), Hausa, Yorùbá, Igbo and French. Switch from the header, mobile menu or footer; signed-in users keep their choice on every device.
 - **Built for phones on slow networks:** mobile-first layout, code-split bundles, a light/dark theme that follows the device, and accessible forms and navigation.
 
 ## Quick start: run the whole stack in Docker

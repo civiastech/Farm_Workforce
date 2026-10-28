@@ -149,7 +149,9 @@ describe("applications", () => {
     expect(apply.statusCode).toBe(201);
     const applicationId = apply.json().id;
 
-    expect((await worker.post(`/api/jobs/${jobId}/applications`, {})).statusCode).toBe(409);
+    const duplicate = await worker.post(`/api/jobs/${jobId}/applications`, {});
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json().error.code).toBe("already_applied");
     expect((await worker.get(`/api/jobs/${jobId}`)).json().myApplication.status).toBe("submitted");
 
     let applicants = (await employer.get(`/api/employer/jobs/${jobId}/applications`)).json().items;

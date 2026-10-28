@@ -15,29 +15,28 @@ import {
   REPORT_STATUSES,
   SIGNUP_ROLES,
 } from "./constants";
+import { vm } from "./validation-messages";
 
-// Plain-language validation messages. Users see these on forms, so they must never read
-// like developer output ("expected string to have >=2 characters").
+// Plain-language validation messages, in the active language. Users see these on forms,
+// so they must never read like developer output ("expected string to have >=2 characters").
 z.config({
   customError: (issue) => {
     switch (issue.code) {
       case "invalid_type":
-        return issue.input === undefined || issue.input === ""
-          ? "This field is required"
-          : "Please check this value";
+        return issue.input === undefined || issue.input === "" ? vm("required") : vm("invalid");
       case "too_small":
         if (issue.origin === "string") {
-          return issue.minimum === 1 ? "This field is required" : `Use at least ${issue.minimum} characters`;
+          return issue.minimum === 1 ? vm("required") : vm("minChars", issue.minimum);
         }
-        if (issue.origin === "number") return `Must be at least ${issue.minimum}`;
+        if (issue.origin === "number") return vm("minNumber", issue.minimum);
         return undefined;
       case "too_big":
-        if (issue.origin === "string") return `Use at most ${issue.maximum} characters`;
-        if (issue.origin === "number") return `Must be at most ${issue.maximum}`;
-        if (issue.origin === "array") return `Choose at most ${issue.maximum}`;
+        if (issue.origin === "string") return vm("maxChars", issue.maximum);
+        if (issue.origin === "number") return vm("maxNumber", issue.maximum);
+        if (issue.origin === "array") return vm("maxItems", issue.maximum);
         return undefined;
       case "invalid_value":
-        return "Choose one of the options";
+        return vm("chooseOption");
       default:
         return undefined;
     }
@@ -71,7 +70,7 @@ export const phoneSchema = z
   .transform((value, ctx) => {
     const phone = normaliseNigerianPhone(value);
     if (!phone) {
-      ctx.addIssue({ code: "custom", message: "Enter a valid Nigerian mobile number, e.g. 0803 123 4567" });
+      ctx.addIssue({ code: "custom", message: vm("phone") });
       return z.NEVER;
     }
     return phone;
@@ -81,14 +80,11 @@ export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .pipe(z.email({ message: "Enter a valid email address" }).max(254));
+  .pipe(z.email({ error: () => vm("email") }).max(254));
 
-export const passwordSchema = z
-  .string()
-  .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
-  .max(PASSWORD_MAX_LENGTH, `Use at most ${PASSWORD_MAX_LENGTH} characters`);
+export const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH);
 
-export const stateSchema = z.enum(NIGERIAN_STATES, { message: "Choose a state" });
+export const stateSchema = z.enum(NIGERIAN_STATES, { error: () => vm("chooseState") });
 export const languageSchema = z.enum(LANGUAGE_KEYS);
 export const uuidSchema = z.uuid({ message: "Invalid id" });
 
@@ -101,13 +97,16 @@ export const registerSchema = z.object({
   phone: phoneSchema,
   password: passwordSchema,
   preferredLanguage: languageSchema.default("en"),
-  acceptTerms: z.literal(true, { message: "You must accept the terms and privacy notice" }),
+  acceptTerms: z.literal(true, { error: () => vm("acceptTerms") }),
 });
 export type RegisterInput = z.input<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Enter your password").max(PASSWORD_MAX_LENGTH),
+  password: z
+    .string()
+    .min(1, { error: () => vm("enterPassword") })
+    .max(PASSWORD_MAX_LENGTH),
 });
 export type LoginInput = z.input<typeof loginSchema>;
 
@@ -124,7 +123,10 @@ export const changePasswordSchema = z.object({
 });
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1, "Enter your password to confirm").max(PASSWORD_MAX_LENGTH),
+  password: z
+    .string()
+    .min(1, { error: () => vm("enterPassword") })
+    .max(PASSWORD_MAX_LENGTH),
 });
 
 // ---------- Profiles ----------
@@ -175,7 +177,7 @@ const jobFields = z.object({
 
 const payRangeIsValid = (job: { payMin?: number; payMax?: number }) =>
   job.payMin === undefined || job.payMax === undefined || job.payMax >= job.payMin;
-const payRangeMessage = { message: "Maximum pay must be at least the minimum pay", path: ["payMax"] };
+const payRangeMessage = { error: () => vm("payRange"), path: ["payMax"] };
 
 export const jobInputSchema = jobFields.refine(payRangeIsValid, payRangeMessage);
 export type JobInput = z.input<typeof jobInputSchema>;

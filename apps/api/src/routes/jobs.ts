@@ -18,7 +18,7 @@ import { and, count, desc, eq, ilike, inArray, isNotNull, ne, or, sql, type SQL 
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { applications, employerProfiles, jobs, reports, users, workerProfiles } from "../db/schema";
 import { audit } from "../lib/audit";
-import { badRequest, conflict, forbidden, notFound } from "../lib/errors";
+import { AppError, badRequest, notFound } from "../lib/errors";
 import { parse } from "../lib/validation";
 import { requireRole, requireUser } from "../plugins/auth";
 import { jobSummaryColumns, likePattern, toJobSummary } from "../services/jobs";
@@ -138,7 +138,12 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
       .select({ userId: employerProfiles.userId })
       .from(employerProfiles)
       .where(eq(employerProfiles.userId, user.id));
-    if (!profile) throw badRequest("Complete your organisation profile before posting jobs");
+    if (!profile)
+      throw new AppError(
+        400,
+        "employer_profile_required",
+        "Complete your organisation profile before posting jobs",
+      );
 
     const [job] = await app.db
       .insert(jobs)
@@ -161,7 +166,8 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
 
     const [job] = await app.db.select().from(jobs).where(eq(jobs.id, id));
     if (!job || job.employerId !== user.id) throw notFound("Job");
-    if (job.status === "removed") throw forbidden("This job was removed by a moderator and cannot be edited");
+    if (job.status === "removed")
+      throw new AppError(403, "job_removed", "This job was removed by a moderator and cannot be edited");
 
     const payMin = input.payMin ?? job.payMin;
     const payMax = input.payMax ?? job.payMax;
@@ -269,11 +275,13 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
       .select({ userId: workerProfiles.userId })
       .from(workerProfiles)
       .where(eq(workerProfiles.userId, user.id));
-    if (!profile) throw badRequest("Complete your worker profile before applying");
+    if (!profile)
+      throw new AppError(400, "worker_profile_required", "Complete your worker profile before applying");
 
     const [job] = await app.db.select({ status: jobs.status }).from(jobs).where(eq(jobs.id, id));
     if (!job) throw notFound("Job");
-    if (job.status !== "open") throw badRequest("This job is no longer accepting applications");
+    if (job.status !== "open")
+      throw new AppError(400, "job_closed", "This job is no longer accepting applications");
 
     // A worker who withdrew may apply again; any other existing application is a duplicate.
     const [application] = await app.db
@@ -285,7 +293,7 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
         setWhere: eq(applications.status, "withdrawn"),
       })
       .returning({ id: applications.id });
-    if (!application) throw conflict("You have already applied for this job");
+    if (!application) throw new AppError(409, "already_applied", "You have already applied for this job");
 
     await audit(request, {
       action: "application.submitted",

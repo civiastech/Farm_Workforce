@@ -11,7 +11,8 @@ import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { Avatar, Badge, EmptyState, Pagination, QueryError, Spinner } from "../components/ui";
 import { api, toQuery } from "../lib/api";
-import { JOB_STATUS_UI, formatDate, timeAgo } from "../lib/format";
+import { useI18n } from "../i18n";
+import { JOB_STATUS_TONE } from "../lib/format";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
 
@@ -53,6 +54,7 @@ const REPORT_TABS: [ReportStatus | "", string][] = [
 ];
 
 export function AdminReportsPage() {
+  const { t, formatDate, timeAgo } = useI18n();
   usePageTitle("Reports");
   const [status, setStatus] = useState<ReportStatus | "">("open");
   const [page, setPage] = useState(1);
@@ -136,8 +138,8 @@ export function AdminReportsPage() {
                       {report.job.title}
                     </Link>
                     <span className="subtle">{report.job.organisationName}</span>
-                    <Badge tone={JOB_STATUS_UI[report.job.status].tone}>
-                      {JOB_STATUS_UI[report.job.status].label}
+                    <Badge tone={JOB_STATUS_TONE[report.job.status]}>
+                      {t(`jobStatus.${report.job.status}`)}
                     </Badge>
                   </p>
                 ) : (
@@ -192,6 +194,7 @@ export function AdminReportsPage() {
 }
 
 export function AdminEmployersPage() {
+  const { formatDate } = useI18n();
   usePageTitle("Employers");
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();

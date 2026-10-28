@@ -12,7 +12,9 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Alert } from "../components/ui";
+import { useI18n } from "../i18n";
 import { usePageTitle } from "../lib/usePageTitle";
+import { HowSteps } from "./home";
 
 function InfoHero({ eyebrow, title, lead }: { eyebrow: string; title: ReactNode; lead?: string }) {
   return (
@@ -26,25 +28,29 @@ function InfoHero({ eyebrow, title, lead }: { eyebrow: string; title: ReactNode;
   );
 }
 
-const LegalDraftNotice = () => (
-  <Alert tone="warning" title="Draft for legal review">
-    This text describes how the platform is built to work. It must be reviewed by a qualified Nigerian lawyer
-    (including against the Nigeria Data Protection Act 2023) before public launch.
-  </Alert>
-);
+/** Legal text is kept in English until a lawyer has approved translations. */
+function LegalNotices() {
+  const { t, lang } = useI18n();
+  return (
+    <div className="stack">
+      {lang !== "en" && <Alert>{t("legal.englishOnly")}</Alert>}
+      <Alert tone="warning" title="Draft for legal review">
+        This text describes how the platform is built to work. It must be reviewed by a qualified Nigerian
+        lawyer (including against the Nigeria Data Protection Act 2023) before public launch.
+      </Alert>
+    </div>
+  );
+}
 
 export function HowItWorksPage() {
-  usePageTitle("How it works");
+  const { t, tn } = useI18n();
+  usePageTitle(t("nav.howItWorks"));
   return (
     <>
       <InfoHero
-        eyebrow="How it works"
-        title={
-          <>
-            Simple for <em>both sides.</em>
-          </>
-        }
-        lead="Whether you're looking for your next season of work or hiring a whole team, it takes minutes to get started."
+        eyebrow={t("nav.howItWorks")}
+        title={tn("how.title", { em: <em>{t("how.titleEm")}</em> })}
+        lead={t("how.lead")}
       />
       <section className="section">
         <div className="wrap how-grid">
@@ -53,36 +59,11 @@ export function HowItWorksPage() {
               <Users size={26} />
             </span>
             <h2 className="display" style={{ fontSize: "1.6rem", margin: "14px 0 22px" }}>
-              For workers
+              {t("how.forWorkers")}
             </h2>
-            <ol className="steps">
-              <li>
-                <div>
-                  <strong>Create a free account and profile</strong>
-                  <p>Tell employers your skills, experience and where you can work.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Browse and apply</strong>
-                  <p>Every job shows the pay, location, and whether housing or meals are provided.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Track your progress</strong>
-                  <p>See when you're shortlisted or hired, and get an email at every step.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Get the call</strong>
-                  <p>Employers see your phone number only once they shortlist you.</p>
-                </div>
-              </li>
-            </ol>
+            <HowSteps side="w" />
             <Link className="btn btn-primary" to="/register?role=worker" style={{ marginTop: 28 }}>
-              I'm looking for work <ArrowRight size={17} />
+              {t("how.imLooking")} <ArrowRight size={17} />
             </Link>
           </article>
           <article className="how-card">
@@ -90,36 +71,11 @@ export function HowItWorksPage() {
               <Briefcase size={26} />
             </span>
             <h2 className="display" style={{ fontSize: "1.6rem", margin: "14px 0 22px" }}>
-              For employers
+              {t("how.forEmployers")}
             </h2>
-            <ol className="steps">
-              <li>
-                <div>
-                  <strong>Register and describe your farm</strong>
-                  <p>Our team verifies employers so workers can trust your listings.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Post a job in minutes</strong>
-                  <p>A live preview shows exactly what workers will see.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Review applicants</strong>
-                  <p>Compare skills, experience and location, and read each applicant's message.</p>
-                </div>
-              </li>
-              <li>
-                <div>
-                  <strong>Shortlist and hire</strong>
-                  <p>Shortlisting unlocks contact details so you can call your best candidates.</p>
-                </div>
-              </li>
-            </ol>
+            <HowSteps side="e" />
             <Link className="btn btn-outline" to="/register?role=employer" style={{ marginTop: 28 }}>
-              I'm hiring <ArrowRight size={17} />
+              {t("how.imHiring")} <ArrowRight size={17} />
             </Link>
           </article>
         </div>
@@ -128,51 +84,24 @@ export function HowItWorksPage() {
   );
 }
 
-const PRINCIPLES: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: HandCoins,
-    title: "Free for workers, always",
-    body: "Workers never pay to register or apply. Any employer asking for a fee, deposit, uniform payment or “training cost” is breaking our rules — report them.",
-  },
-  {
-    icon: Lock,
-    title: "Your number stays private",
-    body: "Employers see your phone and email only after they shortlist you. You can download or delete your data at any time.",
-  },
-  {
-    icon: Wallet,
-    title: "Pay is always shown",
-    body: "Every job must state its pay range and how often it is paid. No “pay negotiable” listings.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Verified employers",
-    body: "The verified badge is only given after our team checks the business behind the listing.",
-  },
-  {
-    icon: Flag,
-    title: "Report anything, instantly",
-    body: "Every job has a report button. Reports are confidential and reviewed by real people.",
-  },
-  {
-    icon: Users,
-    title: "Fair treatment",
-    body: "No discrimination or harassment. Employers must follow Nigerian labour law, including minimum wage and safety rules.",
-  },
+const PRINCIPLES: { icon: LucideIcon; key: "free" | "privacy" | "pay" | "verified" | "report" | "fair" }[] = [
+  { icon: HandCoins, key: "free" },
+  { icon: Lock, key: "privacy" },
+  { icon: Wallet, key: "pay" },
+  { icon: BadgeCheck, key: "verified" },
+  { icon: Flag, key: "report" },
+  { icon: Users, key: "fair" },
 ];
 
 export function TrustPage() {
-  usePageTitle("Trust & safety");
+  const { t, tn } = useI18n();
+  usePageTitle(t("nav.trust"));
   return (
     <>
       <InfoHero
-        eyebrow="Trust & safety"
-        title={
-          <>
-            Trust is <em>the product.</em>
-          </>
-        }
-        lead="These commitments are built into how the platform works — not bolted on."
+        eyebrow={t("nav.trust")}
+        title={tn("trust.title", { em: <em>{t("trust.titleEm")}</em> })}
+        lead={t("trust.lead")}
       />
       <section className="section">
         <div className="wrap stack-lg">
@@ -180,20 +109,20 @@ export function TrustPage() {
             className="category-grid"
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))" }}
           >
-            {PRINCIPLES.map(({ icon: Icon, title, body }) => (
-              <article key={title} className="panel">
+            {PRINCIPLES.map(({ icon: Icon, key }) => (
+              <article key={key} className="panel">
                 <span className="tile-icon">
                   <Icon size={22} />
                 </span>
-                <h2 style={{ fontSize: "1.1rem", margin: "16px 0 8px" }}>{title}</h2>
+                <h2 style={{ fontSize: "1.1rem", margin: "16px 0 8px" }}>{t(`principle.${key}.title`)}</h2>
                 <p className="muted" style={{ margin: 0 }}>
-                  {body}
+                  {t(`principle.${key}.body`)}
                 </p>
               </article>
             ))}
           </div>
-          <Alert tone="warning" title="We will never ask for your NIN, BVN, bank PIN or OTP.">
-            If anyone claiming to be from Farm Workforce asks for these, it is a scam. Do not share them.
+          <Alert tone="warning" title={t("trust.neverTitle")}>
+            {t("trust.neverBody")}
           </Alert>
         </div>
       </section>
@@ -202,13 +131,14 @@ export function TrustPage() {
 }
 
 export function PrivacyPage() {
-  usePageTitle("Privacy notice");
+  const { t } = useI18n();
+  usePageTitle(t("footer.privacy"));
   return (
     <>
-      <InfoHero eyebrow="Legal" title="Privacy notice" />
+      <InfoHero eyebrow={t("legal.eyebrow")} title={t("footer.privacy")} />
       <section className="section-tight">
-        <div className="wrap article">
-          <LegalDraftNotice />
+        <div className="wrap article" lang="en">
+          <LegalNotices />
           <h2 className="display">What we collect</h2>
           <p>
             Account details (name, email, mobile number, preferred language); profile details you choose to
@@ -247,13 +177,14 @@ export function PrivacyPage() {
 }
 
 export function TermsPage() {
-  usePageTitle("Terms of use");
+  const { t } = useI18n();
+  usePageTitle(t("footer.terms"));
   return (
     <>
-      <InfoHero eyebrow="Legal" title="Terms of use" />
+      <InfoHero eyebrow={t("legal.eyebrow")} title={t("footer.terms")} />
       <section className="section-tight">
-        <div className="wrap article">
-          <LegalDraftNotice />
+        <div className="wrap article" lang="en">
+          <LegalNotices />
           <h2 className="display">Using the platform</h2>
           <p>
             You must give accurate information, keep your password private, and use the platform only to find
@@ -280,20 +211,21 @@ export function TermsPage() {
 }
 
 export function NotFoundPage() {
-  usePageTitle("Page not found");
+  const { t } = useI18n();
+  usePageTitle(t("notFound.title"));
   return (
     <div className="wrap not-found">
       <div className="code">404</div>
       <h1 className="display" style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)" }}>
-        This field is empty.
+        {t("notFound.title")}
       </h1>
-      <p className="muted">The page you're looking for doesn't exist or has moved.</p>
+      <p className="muted">{t("notFound.body")}</p>
       <div className="row" style={{ justifyContent: "center", marginTop: 24 }}>
         <Link className="btn btn-primary" to="/">
-          Go home
+          {t("common.goHome")}
         </Link>
         <Link className="btn btn-outline" to="/jobs">
-          Browse jobs
+          {t("common.browseJobs")}
         </Link>
       </div>
     </div>

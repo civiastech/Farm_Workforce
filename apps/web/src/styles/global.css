@@ -526,6 +526,7 @@ p {
 }
 .nav-links a {
   display: block;
+  white-space: nowrap;
   padding: 8px 12px;
   border-radius: 10px;
   font-size: 0.93rem;
@@ -625,6 +626,100 @@ p {
 .menu svg {
   color: var(--text-subtle);
 }
+.menu-narrow {
+  min-width: 210px;
+  right: max(calc(var(--gutter) + 120px), calc((100vw - var(--wrap)) / 2 + var(--gutter) + 120px));
+}
+.menu [aria-checked="true"] {
+  font-weight: 700;
+  color: var(--brand-ink);
+}
+.lang-button {
+  gap: 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+.footer-languages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 2px;
+  margin-top: 18px;
+}
+.footer-languages svg {
+  margin-right: 6px;
+}
+.footer-lang {
+  border: 0;
+  background: none;
+  color: var(--deep-muted);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.footer-lang:hover {
+  color: var(--deep-text);
+  background: rgb(255 255 255 / 8%);
+}
+.footer-lang[aria-pressed="true"] {
+  color: var(--deep-text);
+  background: rgb(255 255 255 / 12%);
+  font-weight: 650;
+}
+.mobile-prefs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 6px 4px;
+}
+.mobile-langs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-subtle);
+}
+.lang-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.lang-chip[aria-pressed="true"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+@media (max-width: 520px) {
+  .hide-sm {
+    display: none;
+  }
+  .nav {
+    gap: 8px;
+  }
+  .nav-actions {
+    gap: 4px;
+  }
+  .brand {
+    font-size: 1.05rem;
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+}
+@media (max-width: 900px) {
+  .menu-narrow {
+    right: var(--gutter);
+  }
+}
 .menu-toggle {
   display: none;
 }
@@ -632,7 +727,8 @@ p {
   display: none;
 }
 
-@media (max-width: 900px) {
+/* Collapses earlier than other layouts: translated menu labels can be much longer than English. */
+@media (max-width: 1100px) {
   .nav-links,
   .nav-actions .desktop-only {
     display: none;

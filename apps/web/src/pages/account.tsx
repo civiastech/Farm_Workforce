@@ -11,24 +11,25 @@ import { Download, KeyRound, Trash2, UserRound } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Alert, Field, Options, PasswordInput } from "../components/ui";
+import { useI18n } from "../i18n";
 import { api } from "../lib/api";
 import { meQueryKey, useAuth } from "../lib/auth";
-import { formatDate } from "../lib/format";
 import { useFormSubmit } from "../lib/forms";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
 
 export function AccountPage() {
-  usePageTitle("Account & privacy");
+  const { t, formatDate } = useI18n();
+  usePageTitle(t("nav.account"));
   const { user } = useAuth();
   if (!user) return null;
 
   return (
     <div className="stack-lg">
       <div className="page-head" style={{ marginBottom: 0 }}>
-        <h1 className="display">Account &amp; privacy</h1>
+        <h1 className="display">{t("nav.account")}</h1>
         <p className="muted">
-          Signed in as {user.email} · member since {formatDate(user.createdAt)}
+          {t("account.signedInAs", { email: user.email, date: formatDate(user.createdAt) })}
         </p>
       </div>
       <AccountDetails />
@@ -39,6 +40,7 @@ export function AccountPage() {
 }
 
 function AccountDetails() {
+  const { t, setLang } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -49,7 +51,9 @@ function AccountDetails() {
       onSuccess: (data) => {
         queryClient.setQueryData(meQueryKey, { user: data.user });
         queryClient.setQueryData(["profile"], data);
-        toast("Account details saved.");
+        // The saved preferred language becomes the interface language too.
+        setLang(data.user.preferredLanguage);
+        toast(t("account.saved"));
       },
     },
   );
@@ -59,21 +63,21 @@ function AccountDetails() {
     <form className="panel form" onSubmit={onSubmit} noValidate>
       <section className="form-section">
         <h2>
-          <UserRound size={18} /> Your details
+          <UserRound size={18} /> {t("account.details")}
         </h2>
         {formError && <Alert tone="error">{formError}</Alert>}
         <div className="form-grid">
-          <Field label="Full name" name="fullName" error={fieldErrors.fullName}>
+          <Field label={t("common.fullName")} name="fullName" error={fieldErrors.fullName}>
             {(props) => (
               <input className="input" autoComplete="name" defaultValue={user.fullName} {...props} />
             )}
           </Field>
-          <Field label="Mobile number" name="phone" error={fieldErrors.phone}>
+          <Field label={t("common.phone")} name="phone" error={fieldErrors.phone}>
             {(props) => (
               <input className="input" type="tel" autoComplete="tel" defaultValue={user.phone} {...props} />
             )}
           </Field>
-          <Field label="Preferred language" name="preferredLanguage" error={fieldErrors.preferredLanguage}>
+          <Field label={t("common.language")} name="preferredLanguage" error={fieldErrors.preferredLanguage}>
             {(props) => (
               <select className="select" defaultValue={user.preferredLanguage} {...props}>
                 <Options items={LANGUAGES} />
@@ -84,7 +88,7 @@ function AccountDetails() {
       </section>
       <div>
         <button className="btn btn-primary" type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save details"}
+          {isPending ? t("common.saving") : t("account.saveDetails")}
         </button>
       </div>
     </form>
@@ -92,6 +96,7 @@ function AccountDetails() {
 }
 
 function ChangePassword() {
+  const { t } = useI18n();
   const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const { onSubmit, fieldErrors, formError, isPending } = useFormSubmit(
@@ -100,7 +105,7 @@ function ChangePassword() {
     {
       onSuccess: () => {
         formRef.current?.reset();
-        toast("Password changed. Other devices have been signed out.");
+        toast(t("account.changed"));
       },
     },
   );
@@ -109,21 +114,21 @@ function ChangePassword() {
     <form ref={formRef} className="panel form" onSubmit={onSubmit} noValidate>
       <section className="form-section">
         <h2>
-          <KeyRound size={18} /> Change password
+          <KeyRound size={18} /> {t("account.password")}
         </h2>
         <p className="subtle" style={{ margin: 0 }}>
-          Changing your password signs you out on every other device.
+          {t("account.passwordLead")}
         </p>
         {formError && <Alert tone="error">{formError}</Alert>}
         <div className="form-grid">
-          <Field label="Current password" name="currentPassword" error={fieldErrors.currentPassword}>
+          <Field label={t("account.current")} name="currentPassword" error={fieldErrors.currentPassword}>
             {(props) => <PasswordInput autoComplete="current-password" {...props} />}
           </Field>
           <Field
-            label="New password"
+            label={t("reset.newPassword")}
             name="newPassword"
             error={fieldErrors.newPassword}
-            hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
+            hint={t("reset.hint", { n: PASSWORD_MIN_LENGTH })}
           >
             {(props) => <PasswordInput autoComplete="new-password" {...props} />}
           </Field>
@@ -131,7 +136,7 @@ function ChangePassword() {
       </section>
       <div>
         <button className="btn btn-primary" type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Change password"}
+          {isPending ? t("common.saving") : t("account.password")}
         </button>
       </div>
     </form>
@@ -139,6 +144,7 @@ function ChangePassword() {
 }
 
 function YourData() {
+  const { t, errorMessage } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -153,7 +159,7 @@ function YourData() {
         dialogRef.current?.close();
         queryClient.clear();
         queryClient.setQueryData(meQueryKey, { user: null });
-        toast("Your account and data have been deleted.");
+        toast(t("account.deleted"));
         navigate("/", { replace: true });
       },
     },
@@ -172,7 +178,7 @@ function YourData() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Export failed");
+      toast(errorMessage(error));
     } finally {
       setExporting(false);
     }
@@ -181,30 +187,30 @@ function YourData() {
   return (
     <section className="panel stack danger-zone" aria-labelledby="your-data">
       <h2 id="your-data" className="panel-title" style={{ margin: 0 }}>
-        Your data
+        {t("account.yourData")}
       </h2>
       <div className="spread">
         <div style={{ maxWidth: "34em" }}>
-          <strong>Download a copy</strong>
+          <strong>{t("account.download")}</strong>
           <p className="subtle" style={{ margin: 0 }}>
-            Everything we hold about you — account, profile, applications and jobs — as a JSON file.
+            {t("account.downloadBody")}
           </p>
         </div>
         <button type="button" className="btn btn-outline" onClick={downloadData} disabled={exporting}>
           <Download size={17} />
-          {exporting ? "Preparing…" : "Download my data"}
+          {exporting ? t("account.preparing") : t("account.downloadButton")}
         </button>
       </div>
       <hr style={{ border: 0, borderTop: "1px solid var(--border)", margin: "4px 0" }} />
       <div className="spread">
         <div style={{ maxWidth: "34em" }}>
-          <strong>Delete account</strong>
+          <strong>{t("account.delete")}</strong>
           <p className="subtle" style={{ margin: 0 }}>
-            Permanently removes your profile, applications and any jobs you posted. This cannot be undone.
+            {t("account.deleteBody")}
           </p>
         </div>
         <button type="button" className="btn btn-danger" onClick={() => dialogRef.current?.showModal()}>
-          <Trash2 size={17} /> Delete account
+          <Trash2 size={17} /> {t("account.delete")}
         </button>
       </div>
 
@@ -218,22 +224,22 @@ function YourData() {
               <Trash2 size={20} />
             </span>
             <h2 id="delete-title" style={{ fontSize: "1.3rem", margin: 0 }}>
-              Delete your account?
+              {t("account.deleteTitle")}
             </h2>
             <p className="muted" style={{ margin: "6px 0 0" }}>
-              This permanently deletes your account and data. Enter your password to confirm.
+              {t("account.deleteConfirm")}
             </p>
           </div>
           {formError && <Alert tone="error">{formError}</Alert>}
-          <Field label="Password" name="password" error={fieldErrors.password}>
+          <Field label={t("common.password")} name="password" error={fieldErrors.password}>
             {(props) => <PasswordInput autoComplete="current-password" {...props} />}
           </Field>
           <div className="row" style={{ justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-outline" onClick={() => dialogRef.current?.close()}>
-              Keep my account
+              {t("account.keep")}
             </button>
             <button type="submit" className="btn btn-danger" disabled={isPending}>
-              {isPending ? "Deleting…" : "Delete permanently"}
+              {isPending ? t("account.deleting") : t("account.deletePermanently")}
             </button>
           </div>
         </form>

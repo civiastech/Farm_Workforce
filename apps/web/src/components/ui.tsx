@@ -27,15 +27,8 @@ import {
 } from "lucide-react";
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
-import {
-  PERIOD_LABEL,
-  avatarColour,
-  employmentLabel,
-  initials,
-  isNew,
-  payRange,
-  timeAgo,
-} from "../lib/format";
+import { useI18n } from "../i18n";
+import { avatarColour, initials, isNew, payRange } from "../lib/format";
 
 // ---------------------------------------------------------------- Brand art
 
@@ -127,11 +120,12 @@ export function Alert({
   );
 }
 
-export function Spinner({ label = "Loading" }: { label?: string }) {
+export function Spinner({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <div className="page-loader" role="status">
       <div className="spinner" aria-hidden="true" />
-      <span className="visually-hidden">{label}…</span>
+      <span className="visually-hidden">{label ?? t("common.loading")}…</span>
     </div>
   );
 }
@@ -160,12 +154,13 @@ export function EmptyState({
 }
 
 export function QueryError({ error, retry }: { error: Error; retry?: () => void }) {
+  const { t, errorMessage } = useI18n();
   return (
-    <Alert tone="error" title="Something went wrong">
-      {error.message}{" "}
+    <Alert tone="error" title={t("common.somethingWrong")}>
+      {errorMessage(error)}{" "}
       {retry && (
         <button type="button" className="link-button link" onClick={retry}>
-          Try again
+          {t("common.tryAgain")}
         </button>
       )}
     </Alert>
@@ -195,6 +190,7 @@ interface FieldProps {
 
 /** Label + control + hint + error (+ optional counter), wired up for screen readers. */
 export function Field({ label, name, error, hint, optional, className, counter, children }: FieldProps) {
+  const { t } = useI18n();
   const id = useId();
   const [length, setLength] = useState(counter?.initial ?? 0);
   const hintId = hint ? `${id}-hint` : undefined;
@@ -208,7 +204,7 @@ export function Field({ label, name, error, hint, optional, className, counter, 
     >
       <label className="field-label" htmlFor={id}>
         <span>
-          {label} {optional && <span className="optional">(optional)</span>}
+          {label} {optional && <span className="optional">{t("common.optional")}</span>}
         </span>
       </label>
       {children({ id, name, "aria-invalid": !!error, "aria-describedby": describedBy })}
@@ -242,6 +238,7 @@ export function PasswordInput({
   autoComplete,
   ...props
 }: ControlProps & { autoComplete: "current-password" | "new-password" }) {
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
   return (
     <div className="input-affix">
@@ -250,7 +247,7 @@ export function PasswordInput({
         type="button"
         className="affix-button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("common.hidePassword") : t("common.showPassword")}
         aria-pressed={visible}
       >
         {visible ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -308,14 +305,15 @@ export function Meter({ value, label }: { value: number; label: string }) {
   );
 }
 
-const TRACKER_STEPS = ["Applied", "Shortlisted", "Hired"] as const;
+const TRACKER_STEPS = ["tracker.applied", "tracker.shortlisted", "tracker.hired"] as const;
 
 /** Submitted → Shortlisted → Hired, with the current step highlighted. */
 export function StatusTracker({ status }: { status: ApplicationStatus }) {
+  const { t } = useI18n();
   const reached = status === "hired" ? 3 : status === "shortlisted" ? 2 : 1;
   const closed = status === "rejected" || status === "withdrawn";
   return (
-    <ol className="tracker" aria-label="Application progress">
+    <ol className="tracker" aria-label={t("tracker.label")}>
       {TRACKER_STEPS.map((step, index) => {
         const isReached = !closed && index < reached;
         const isCurrent = !closed && index === reached - 1;
@@ -328,7 +326,7 @@ export function StatusTracker({ status }: { status: ApplicationStatus }) {
             <span className="node">
               {isReached && <Check size={14} strokeWidth={3} aria-hidden="true" />}
             </span>
-            {step}
+            {t(step)}
           </li>
         );
       })}
@@ -356,6 +354,7 @@ type JobCardData = Pick<
 > & { id?: string };
 
 export function JobCard({ job, footer }: { job: JobCardData; footer?: ReactNode }) {
+  const { t, timeAgo } = useI18n();
   const fresh = isNew(job.createdAt);
   return (
     <article className="job-card">
@@ -371,21 +370,21 @@ export function JobCard({ job, footer }: { job: JobCardData; footer?: ReactNode 
                   {job.title}
                 </Link>
               ) : (
-                job.title || "Job title"
+                job.title || t("editor.jobTitle")
               )}
             </h3>
             <span className="employer-line">
               {job.employer.organisationName}
               {job.employer.verified && (
-                <BadgeCheck className="verified" size={16} aria-label="Verified employer" />
+                <BadgeCheck className="verified" size={16} aria-label={t("common.verifiedEmployer")} />
               )}
             </span>
           </div>
-          {fresh && <Badge tone="new">New</Badge>}
+          {fresh && <Badge tone="new">{t("common.new")}</Badge>}
         </div>
 
         <div className="job-pay">
-          {payRange(job.payMin, job.payMax)} <small>{PERIOD_LABEL[job.payPeriod]}</small>
+          {payRange(job.payMin, job.payMax)} <small>{t(`period.${job.payPeriod}`)}</small>
         </div>
 
         <div className="job-meta">
@@ -396,12 +395,12 @@ export function JobCard({ job, footer }: { job: JobCardData; footer?: ReactNode 
           </span>
           <span>
             <Briefcase size={15} aria-hidden="true" />
-            {employmentLabel(job.employmentType)}
+            {t(`employment.${job.employmentType}`)}
           </span>
           {job.positions > 1 && (
             <span>
               <Users size={15} aria-hidden="true" />
-              {job.positions} positions
+              {t("common.positions", { n: job.positions })}
             </span>
           )}
         </div>
@@ -411,18 +410,18 @@ export function JobCard({ job, footer }: { job: JobCardData; footer?: ReactNode 
             {job.accommodationProvided && (
               <span className="chip chip-brand">
                 <House size={13} aria-hidden="true" />
-                Accommodation
+                {t("common.accommodation")}
               </span>
             )}
             {job.mealsProvided && (
               <span className="chip chip-brand">
                 <UtensilsCrossed size={13} aria-hidden="true" />
-                Meals
+                {t("common.meals")}
               </span>
             )}
             {!job.accommodationProvided && !job.mealsProvided && (
               <span className="subtle" style={{ fontSize: "0.82rem" }}>
-                No housing or meals
+                {t("common.noHousingMeals")}
               </span>
             )}
           </div>
@@ -478,16 +477,17 @@ export function Pagination({
   totalPages: number;
   onChange: (page: number) => void;
 }) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
   return (
-    <nav className="pagination" aria-label="Pagination">
+    <nav className="pagination" aria-label={t("common.pagination")}>
       <button
         type="button"
         className="btn btn-outline btn-sm"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
       >
-        Previous
+        {t("common.previous")}
       </button>
       {pageWindow(page, totalPages).map((p, i) =>
         p === "…" ? (
@@ -500,7 +500,7 @@ export function Pagination({
             type="button"
             className="page-num"
             aria-current={p === page ? "page" : undefined}
-            aria-label={`Page ${p}`}
+            aria-label={t("common.page", { n: p })}
             onClick={() => onChange(p)}
           >
             {p}
@@ -513,7 +513,7 @@ export function Pagination({
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
       >
-        Next
+        {t("common.next")}
       </button>
     </nav>
   );

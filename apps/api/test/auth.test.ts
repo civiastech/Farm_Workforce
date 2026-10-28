@@ -65,6 +65,7 @@ describe("registration and sessions", () => {
       acceptTerms: true,
     });
     expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe("email_taken");
   });
 
   it("returns field-level validation errors", async () => {
@@ -87,6 +88,7 @@ describe("registration and sessions", () => {
 
     const bad = await client.post("/api/auth/login", { email, password: "wrong-password-123" });
     expect(bad.statusCode).toBe(401);
+    expect(bad.json().error.code).toBe("invalid_credentials");
     const unknown = await client.post("/api/auth/login", { email: "nobody@example.com", password: PASSWORD });
     expect(unknown.statusCode).toBe(401);
     expect(unknown.json().error.message).toBe(bad.json().error.message);

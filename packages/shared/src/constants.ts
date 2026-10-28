@@ -90,12 +90,14 @@ export const EMPLOYER_APPLICATION_STATUSES = ["submitted", "shortlisted", "rejec
 /** Statuses at which the employer may see the applicant's contact details. */
 export const CONTACT_VISIBLE_STATUSES: readonly ApplicationStatus[] = ["shortlisted", "hired"];
 
+/** Interface languages, labelled in their own language. */
 export const LANGUAGES = {
   en: "English",
-  pcm: "Nigerian Pidgin",
+  pcm: "Naijá (Pidgin)",
   ha: "Hausa",
   yo: "Yorùbá",
   ig: "Igbo",
+  fr: "Français",
 } as const;
 export type Language = keyof typeof LANGUAGES;
 export const LANGUAGE_KEYS = Object.keys(LANGUAGES) as [Language, ...Language[]];

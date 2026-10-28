@@ -10,7 +10,7 @@ import { desc, eq } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { applications, employerProfiles, jobs, reports, sessions, users, workerProfiles } from "../db/schema";
 import { audit } from "../lib/audit";
-import { badRequest } from "../lib/errors";
+import { AppError, badRequest } from "../lib/errors";
 import { verifyPassword } from "../lib/password";
 import { parse } from "../lib/validation";
 import { endSession, requireRole, requireUser } from "../plugins/auth";
@@ -159,7 +159,9 @@ export const meRoutes: FastifyPluginAsync = async (app) => {
       .from(users)
       .where(eq(users.id, user.id));
     if (!row || !(await verifyPassword(password, row.passwordHash))) {
-      throw badRequest("Password is incorrect", { password: "Password is incorrect" });
+      throw new AppError(400, "wrong_password", "Password is incorrect", {
+        password: "Password is incorrect",
+      });
     }
 
     await endSession(request, reply);

@@ -9,7 +9,7 @@ import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { passwordResetTokens, sessions, users } from "../db/schema";
 import { audit } from "../lib/audit";
-import { AppError, badRequest, conflict, unauthorized } from "../lib/errors";
+import { AppError } from "../lib/errors";
 import { dummyPasswordHash, hashPassword, needsRehash, verifyPassword } from "../lib/password";
 import { generateToken, hashToken } from "../lib/tokens";
 import { parse } from "../lib/validation";
@@ -27,7 +27,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const input = parse(registerSchema, request.body);
 
     const [existing] = await app.db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
-    if (existing) throw conflict("An account with this email already exists. Try signing in instead.");
+    if (existing)
+      throw new AppError(
+        409,
+        "email_taken",
+        "An account with this email already exists. Try signing in instead.",
+      );
 
     const [user] = await app.db
       .insert(users)
@@ -42,7 +47,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       })
       .onConflictDoNothing()
       .returning({ id: users.id });
-    if (!user) throw conflict("An account with this email already exists. Try signing in instead.");
+    if (!user)
+      throw new AppError(
+        409,
+        "email_taken",
+        "An account with this email already exists. Try signing in instead.",
+      );
 
     await startSession(request, reply, user.id);
     await audit(request, {
@@ -66,7 +76,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         actorId: user?.id ?? null,
         metadata: { email: input.email },
       });
-      throw unauthorized("Incorrect email or password");
+      throw new AppError(401, "invalid_credentials", "Incorrect email or password");
     }
     if (user.disabledAt) {
       throw new AppError(403, "account_disabled", "This account has been disabled. Please contact support.");
@@ -150,7 +160,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           ),
         )
         .returning({ userId: passwordResetTokens.userId });
-      if (!token) throw badRequest("This reset link is invalid or has expired. Please request a new one.");
+      if (!token)
+        throw new AppError(
+          400,
+          "invalid_reset_link",
+          "This reset link is invalid or has expired. Please request a new one.",
+        );
 
       await tx
         .update(users)
@@ -174,7 +189,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       .from(users)
       .where(eq(users.id, sessionUser.id));
     if (!user || !(await verifyPassword(input.currentPassword, user.passwordHash))) {
-      throw badRequest("Your current password is incorrect", { currentPassword: "Incorrect password" });
+      throw new AppError(400, "wrong_password", "Your current password is incorrect", {
+        currentPassword: "Incorrect password",
+      });
     }
 
     await app.db

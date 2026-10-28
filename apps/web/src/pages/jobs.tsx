@@ -1,12 +1,12 @@
 import {
-  EMPLOYMENT_TYPES,
-  JOB_CATEGORIES,
+  EMPLOYMENT_TYPE_KEYS,
   JOB_CATEGORY_KEYS,
   NIGERIAN_STATES,
-  REPORT_REASONS,
+  REPORT_REASON_KEYS,
   applicationInputSchema,
   formatNaira,
   reportInputSchema,
+  type EmploymentType,
   type JobCategory,
   type JobDetail,
   type JobSummary,
@@ -22,8 +22,8 @@ import {
   Flag,
   House,
   MapPin,
-  SearchX,
   Search,
+  SearchX,
   Send,
   Share2,
   ShieldAlert,
@@ -31,7 +31,7 @@ import {
   UtensilsCrossed,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import {
   Alert,
@@ -41,24 +41,15 @@ import {
   Field,
   JobCard,
   JobCardSkeleton,
-  Options,
   Pagination,
   QueryError,
   Spinner,
   StatusTracker,
 } from "../components/ui";
+import { useI18n } from "../i18n";
 import { ApiError, api, toQuery } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import {
-  APPLICATION_STATUS_UI,
-  JOB_STATUS_UI,
-  PERIOD_LABEL,
-  categoryLabel,
-  employmentLabel,
-  formatDate,
-  payRange,
-  timeAgo,
-} from "../lib/format";
+import { APPLICATION_STATUS_TONE, JOB_STATUS_TONE, payRange } from "../lib/format";
 import { useFormSubmit } from "../lib/forms";
 import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
@@ -66,7 +57,8 @@ import { usePageTitle } from "../lib/usePageTitle";
 const FILTER_KEYS = ["q", "category", "state", "employmentType", "sort"] as const;
 
 export function JobsPage() {
-  usePageTitle("Find farm work");
+  const { t, tp } = useI18n();
+  usePageTitle(t("jobs.title"));
   const [params, setParams] = useSearchParams();
   const page = Number(params.get("page") ?? "1") || 1;
   const filters = Object.fromEntries(FILTER_KEYS.map((key) => [key, params.get(key) ?? ""])) as Record<
@@ -100,10 +92,10 @@ export function JobsPage() {
   const activeFilters = [
     filters.q && { key: "q", label: `“${filters.q}”` },
     filters.state && { key: "state", label: filters.state },
-    filters.category && { key: "category", label: JOB_CATEGORIES[filters.category as JobCategory] },
+    filters.category && { key: "category", label: t(`category.${filters.category as JobCategory}`) },
     filters.employmentType && {
       key: "employmentType",
-      label: EMPLOYMENT_TYPES[filters.employmentType as keyof typeof EMPLOYMENT_TYPES],
+      label: t(`employment.${filters.employmentType as EmploymentType}`),
     },
   ].filter(Boolean) as { key: string; label: string }[];
 
@@ -113,10 +105,10 @@ export function JobsPage() {
     <>
       <section className="page-hero">
         <div className="wrap">
-          <span className="eyebrow">Explore opportunities</span>
-          <h1 className="display">Find farm work</h1>
+          <span className="eyebrow">{t("jobs.eyebrow")}</span>
+          <h1 className="display">{t("jobs.title")}</h1>
           <p className="muted" style={{ margin: 0 }}>
-            Every listing shows the pay up front. Applying is always free.
+            {t("jobs.lead")}
           </p>
 
           {/* key resets the uncontrolled inputs when the URL changes (e.g. back button). */}
@@ -127,36 +119,39 @@ export function JobsPage() {
             onSubmit={submitSearch}
           >
             <label className="input-icon">
-              <span className="visually-hidden">Search jobs</span>
+              <span className="visually-hidden">{t("jobs.searchLabel")}</span>
               <Search size={18} aria-hidden="true" />
               <input
                 name="q"
                 className="input"
                 type="search"
-                placeholder="Job, skill, town or employer"
+                placeholder={t("jobs.searchPlaceholder")}
                 defaultValue={filters.q}
               />
             </label>
             <label className="input-icon">
-              <span className="visually-hidden">State</span>
+              <span className="visually-hidden">{t("common.state")}</span>
               <MapPin size={18} aria-hidden="true" />
               <select name="state" className="select" defaultValue={filters.state}>
-                <Options items={NIGERIAN_STATES} placeholder="All states" />
+                <option value="">{t("common.allStates")}</option>
+                {NIGERIAN_STATES.map((state) => (
+                  <option key={state}>{state}</option>
+                ))}
               </select>
             </label>
             <button className="btn btn-primary" type="submit">
-              Search
+              {t("jobs.search")}
             </button>
           </form>
 
-          <div className="category-scroller" role="group" aria-label="Filter by category">
+          <div className="category-scroller" role="group" aria-label={t("jobs.byCategory")}>
             <button
               type="button"
               className="category-chip"
               aria-pressed={!filters.category}
               onClick={() => update({ category: null })}
             >
-              All jobs
+              {t("jobs.allJobs")}
             </button>
             {JOB_CATEGORY_KEYS.map((key) => (
               <button
@@ -167,7 +162,7 @@ export function JobsPage() {
                 onClick={() => update({ category: filters.category === key ? null : key })}
               >
                 <CategoryIcon category={key} size={16} />
-                {JOB_CATEGORIES[key]}
+                {t(`category.${key}`)}
               </button>
             ))}
           </div>
@@ -176,29 +171,32 @@ export function JobsPage() {
 
       <div className="wrap">
         <div className="results-bar">
-          <h2 aria-live="polite">
-            {total === undefined ? "Loading jobs…" : `${total} job${total === 1 ? "" : "s"} found`}
-          </h2>
+          <h2 aria-live="polite">{total === undefined ? t("jobs.loading") : tp("jobs.found", total)}</h2>
           <div className="results-controls">
             <label>
-              <span className="visually-hidden">Job type</span>
+              <span className="visually-hidden">{t("jobs.jobType")}</span>
               <select
                 className="select"
                 value={filters.employmentType}
                 onChange={(e) => update({ employmentType: e.target.value })}
               >
-                <Options items={EMPLOYMENT_TYPES} placeholder="Any job type" />
+                <option value="">{t("jobs.anyType")}</option>
+                {EMPLOYMENT_TYPE_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {t(`employment.${key}`)}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
-              <span className="visually-hidden">Sort by</span>
+              <span className="visually-hidden">{t("jobs.sortBy")}</span>
               <select
                 className="select"
                 value={filters.sort || "newest"}
                 onChange={(e) => update({ sort: e.target.value === "newest" ? null : e.target.value })}
               >
-                <option value="newest">Newest first</option>
-                <option value="pay">Highest pay</option>
+                <option value="newest">{t("jobs.newest")}</option>
+                <option value="pay">{t("jobs.highestPay")}</option>
               </select>
             </label>
           </div>
@@ -212,7 +210,7 @@ export function JobsPage() {
                 type="button"
                 className="filter-pill"
                 onClick={() => update({ [filter.key]: null })}
-                aria-label={`Remove filter ${filter.label}`}
+                aria-label={t("jobs.removeFilter", { label: filter.label })}
               >
                 {filter.label}
                 <X size={16} aria-hidden="true" />
@@ -224,7 +222,7 @@ export function JobsPage() {
                 className="btn btn-ghost btn-sm"
                 onClick={() => setParams(new URLSearchParams())}
               >
-                Clear all
+                {t("jobs.clearAll")}
               </button>
             )}
           </div>
@@ -241,18 +239,18 @@ export function JobsPage() {
         ) : jobs.data && jobs.data.items.length === 0 ? (
           <EmptyState
             icon={SearchX}
-            title="No jobs match your search"
+            title={t("jobs.emptyTitle")}
             action={
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={() => setParams(new URLSearchParams())}
               >
-                Clear filters
+                {t("jobs.clearFilters")}
               </button>
             }
           >
-            Try a nearby state, a different category, or fewer words.
+            {t("jobs.emptyBody")}
           </EmptyState>
         ) : (
           <>
@@ -284,6 +282,7 @@ export function JobsPage() {
 // ---------------------------------------------------------------- Job detail
 
 export function JobDetailPage() {
+  const { t, formatDate, timeAgo } = useI18n();
   const { id = "" } = useParams();
   const job = useQuery({ queryKey: ["job", id], queryFn: () => api.get<JobDetail>(`/jobs/${id}`) });
   usePageTitle(job.data?.title);
@@ -304,14 +303,14 @@ export function JobDetailPage() {
         {job.error instanceof ApiError && job.error.status === 404 ? (
           <EmptyState
             icon={SearchX}
-            title="This job isn't available"
+            title={t("job.unavailableTitle")}
             action={
               <Link className="btn btn-primary" to="/jobs">
-                Browse other jobs
+                {t("job.browseOther")}
               </Link>
             }
           >
-            It may have been filled or removed.
+            {t("job.unavailableBody")}
           </EmptyState>
         ) : (
           <QueryError error={job.error} retry={() => job.refetch()} />
@@ -328,7 +327,7 @@ export function JobDetailPage() {
       if (navigator.share) await navigator.share({ title: data.title, text, url });
       else {
         await navigator.clipboard.writeText(url);
-        toast("Link copied. Share it with someone who'd be a great fit.");
+        toast(t("job.linkCopied"));
       }
     } catch {
       /* user cancelled the share sheet */
@@ -339,7 +338,7 @@ export function JobDetailPage() {
     <div className="page">
       <div className="wrap">
         <Link className="breadcrumb" to="/jobs">
-          <ArrowLeft size={17} /> All jobs
+          <ArrowLeft size={17} /> {t("job.allJobs")}
         </Link>
         <div className="detail-layout">
           <div className="stack-lg">
@@ -350,12 +349,12 @@ export function JobDetailPage() {
                 </span>
                 <div className="row">
                   {data.status !== "open" && (
-                    <Badge tone={JOB_STATUS_UI[data.status].tone} dot>
-                      {JOB_STATUS_UI[data.status].label}
+                    <Badge tone={JOB_STATUS_TONE[data.status]} dot>
+                      {t(`jobStatus.${data.status}`)}
                     </Badge>
                   )}
                   <button type="button" className="btn btn-outline btn-sm" onClick={share}>
-                    <Share2 size={16} /> Share
+                    <Share2 size={16} /> {t("job.share")}
                   </button>
                 </div>
               </div>
@@ -365,7 +364,7 @@ export function JobDetailPage() {
                   {data.employer.organisationName}
                   {data.employer.verified && (
                     <span className="icon-inline" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>
-                      <BadgeCheck size={17} /> Verified employer
+                      <BadgeCheck size={17} /> {t("common.verifiedEmployer")}
                     </span>
                   )}
                 </p>
@@ -374,40 +373,40 @@ export function JobDetailPage() {
                 {data.payMin === data.payMax
                   ? formatNaira(data.payMin)
                   : `${formatNaira(data.payMin)} – ${formatNaira(data.payMax)}`}
-                <small>{PERIOD_LABEL[data.payPeriod]}</small>
+                <small>{t(`period.${data.payPeriod}`)}</small>
               </div>
               <div className="chips">
                 <span className="chip">
                   <MapPin size={13} /> {data.town}, {data.state}
                 </span>
                 <span className="chip">
-                  <Briefcase size={13} /> {employmentLabel(data.employmentType)}
+                  <Briefcase size={13} /> {t(`employment.${data.employmentType}`)}
                 </span>
                 <span className="chip">
-                  <Clock size={13} /> Posted {timeAgo(data.createdAt)}
+                  <Clock size={13} /> {t("time.posted", { time: timeAgo(data.createdAt) })}
                 </span>
               </div>
             </article>
 
             <section className="panel" aria-labelledby="facts-title">
               <h2 id="facts-title" className="panel-title">
-                Key facts
+                {t("job.keyFacts")}
               </h2>
               <dl className="facts">
-                <Fact icon={<CategoryIcon category={data.category} size={18} />} label="Category">
-                  {categoryLabel(data.category)}
+                <Fact icon={<CategoryIcon category={data.category} size={18} />} label={t("job.category")}>
+                  {t(`category.${data.category}`)}
                 </Fact>
-                <Fact icon={<Users size={18} />} label="Positions">
+                <Fact icon={<Users size={18} />} label={t("job.positions")}>
                   {data.positions}
                 </Fact>
-                <Fact icon={<House size={18} />} label="Accommodation">
-                  {data.accommodationProvided ? "Provided" : "Not provided"}
+                <Fact icon={<House size={18} />} label={t("common.accommodation")}>
+                  {data.accommodationProvided ? t("common.provided") : t("common.notProvided")}
                 </Fact>
-                <Fact icon={<UtensilsCrossed size={18} />} label="Meals">
-                  {data.mealsProvided ? "Provided" : "Not provided"}
+                <Fact icon={<UtensilsCrossed size={18} />} label={t("common.meals")}>
+                  {data.mealsProvided ? t("common.provided") : t("common.notProvided")}
                 </Fact>
                 {data.startDate && (
-                  <Fact icon={<CalendarDays size={18} />} label="Start date">
+                  <Fact icon={<CalendarDays size={18} />} label={t("job.startDate")}>
                     {formatDate(data.startDate)}
                   </Fact>
                 )}
@@ -416,7 +415,7 @@ export function JobDetailPage() {
 
             <section className="panel" aria-labelledby="about-title">
               <h2 id="about-title" className="panel-title">
-                About the job
+                {t("job.about")}
               </h2>
               <p className="prose" style={{ margin: 0 }}>
                 {data.description}
@@ -426,9 +425,8 @@ export function JobDetailPage() {
 
           <aside className="sticky-aside stack" id="apply">
             <ApplyPanel job={data} />
-            <Alert tone="warning" title="Stay safe">
-              Genuine employers never ask you to pay for a job, training or uniform. If anyone asks for money,
-              report this job.
+            <Alert tone="warning" title={t("job.staySafeTitle")}>
+              {t("job.staySafeBody")}
             </Alert>
             <ReportJob key={data.id} jobId={data.id} />
           </aside>
@@ -441,10 +439,12 @@ export function JobDetailPage() {
         <div className="mobile-apply-bar">
           <div>
             <strong>{payRange(data.payMin, data.payMax)}</strong>
-            <span className="subtle">{PERIOD_LABEL[data.payPeriod]}</span>
+            <span className="subtle">{t(`period.${data.payPeriod}`)}</span>
           </div>
           <a className="btn btn-primary" href="#apply">
-            {data.myApplication && data.myApplication.status !== "withdrawn" ? "View status" : "Apply now"}
+            {data.myApplication && data.myApplication.status !== "withdrawn"
+              ? t("job.viewStatus")
+              : t("job.applyNow")}
           </a>
         </div>
       )}
@@ -452,15 +452,7 @@ export function JobDetailPage() {
   );
 }
 
-function Fact({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Fact({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
     <div className="fact">
       <span className="tile-icon">{icon}</span>
@@ -473,6 +465,7 @@ function Fact({
 }
 
 function SimilarJobs({ job }: { job: JobDetail }) {
+  const { t } = useI18n();
   const similar = useQuery({
     queryKey: ["jobs", `?category=${job.category}&pageSize=4`],
     queryFn: () => api.get<Paginated<JobSummary>>(`/jobs?category=${job.category}&pageSize=4`),
@@ -483,10 +476,10 @@ function SimilarJobs({ job }: { job: JobDetail }) {
     <section style={{ marginTop: 56 }} aria-labelledby="similar-title">
       <div className="spread" style={{ marginBottom: 18 }}>
         <h2 id="similar-title" className="display" style={{ fontSize: "1.6rem", margin: 0 }}>
-          Similar jobs
+          {t("job.similar")}
         </h2>
         <Link className="link" to={`/jobs?category=${job.category}`}>
-          See all {categoryLabel(job.category).toLowerCase()} jobs
+          {t("job.seeMore")}
         </Link>
       </div>
       <div className="job-list">
@@ -499,6 +492,7 @@ function SimilarJobs({ job }: { job: JobDetail }) {
 }
 
 function ApplyPanel({ job }: { job: JobDetail }) {
+  const { t, formatDate } = useI18n();
   const { user } = useAuth();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -509,7 +503,7 @@ function ApplyPanel({ job }: { job: JobDetail }) {
     (values) => api.post<{ id: string }>(`/jobs/${job.id}/applications`, values),
     {
       onSuccess: () => {
-        toast("Application sent! We'll email you when the employer responds.");
+        toast(t("apply.sent"));
         queryClient.invalidateQueries({ queryKey: ["job", job.id] });
         queryClient.invalidateQueries({ queryKey: ["my-applications"] });
       },
@@ -520,20 +514,20 @@ function ApplyPanel({ job }: { job: JobDetail }) {
     return (
       <div className="panel panel-sm stack">
         <h2 className="panel-title" style={{ margin: 0 }}>
-          Your listing
+          {t("apply.yourListing")}
         </h2>
         <Link className="btn btn-primary btn-block" to={`/dashboard/jobs/${job.id}/applicants`}>
-          View applicants
+          {t("apply.viewApplicants")}
         </Link>
         <Link className="btn btn-outline btn-block" to={`/dashboard/jobs/${job.id}/edit`}>
-          Edit job
+          {t("apply.editJob")}
         </Link>
       </div>
     );
   }
 
   if (job.status !== "open") {
-    return <Alert>This job is no longer accepting applications.</Alert>;
+    return <Alert>{t("apply.closed")}</Alert>;
   }
 
   if (!user) {
@@ -541,43 +535,42 @@ function ApplyPanel({ job }: { job: JobDetail }) {
     return (
       <div className="panel panel-sm stack">
         <h2 className="panel-title" style={{ margin: 0 }}>
-          Interested in this job?
+          {t("apply.interested")}
         </h2>
         <p className="muted" style={{ margin: 0 }}>
-          Create a free worker profile to apply. It takes about two minutes.
+          {t("apply.createProfileLead")}
         </p>
         <Link className="btn btn-primary btn-block" to={`/register?role=worker&next=${next}`}>
-          Create free profile
+          {t("apply.createProfile")}
         </Link>
         <Link className="btn btn-outline btn-block" to={`/login?next=${next}`}>
-          Sign in to apply
+          {t("apply.signIn")}
         </Link>
       </div>
     );
   }
 
   if (user.role !== "worker") {
-    return <Alert>Only worker accounts can apply for jobs.</Alert>;
+    return <Alert>{t("apply.workersOnly")}</Alert>;
   }
 
   if (job.myApplication && job.myApplication.status !== "withdrawn") {
-    const ui = APPLICATION_STATUS_UI[job.myApplication.status];
     return (
       <div className="panel panel-sm stack">
         <div className="spread">
           <h2 className="panel-title" style={{ margin: 0 }}>
-            You've applied
+            {t("apply.applied")}
           </h2>
-          <Badge tone={ui.tone} dot>
-            {ui.label}
+          <Badge tone={APPLICATION_STATUS_TONE[job.myApplication.status]} dot>
+            {t(`appStatus.${job.myApplication.status}`)}
           </Badge>
         </div>
         <StatusTracker status={job.myApplication.status} />
         <p className="subtle" style={{ margin: 0 }}>
-          Applied {formatDate(job.myApplication.createdAt)}
+          {t("apply.appliedOn", { date: formatDate(job.myApplication.createdAt) })}
         </p>
         <Link className="btn btn-outline btn-block" to="/dashboard/applications">
-          My applications
+          {t("apply.myApplications")}
         </Link>
       </div>
     );
@@ -587,16 +580,16 @@ function ApplyPanel({ job }: { job: JobDetail }) {
     return (
       <div className="panel panel-sm stack">
         <h2 className="panel-title" style={{ margin: 0 }}>
-          One more step
+          {t("apply.oneMoreStep")}
         </h2>
         <p className="muted" style={{ margin: 0 }}>
-          Complete your worker profile so the employer can see your skills.
+          {t("apply.completeProfileLead")}
         </p>
         <Link
           className="btn btn-primary btn-block"
           to={`/dashboard/profile?next=${encodeURIComponent(location.pathname)}`}
         >
-          Complete profile
+          {t("apply.completeProfile")}
         </Link>
       </div>
     );
@@ -605,39 +598,40 @@ function ApplyPanel({ job }: { job: JobDetail }) {
   return (
     <form className="panel panel-sm form" onSubmit={onSubmit} noValidate>
       <h2 className="panel-title" style={{ margin: 0 }}>
-        Apply for this job
+        {t("apply.title")}
       </h2>
       {formError && <Alert tone="error">{formError}</Alert>}
       <Field
-        label="Message to the employer"
+        label={t("apply.message")}
         optional
         name="coverNote"
         error={fieldErrors.coverNote}
-        hint="Mention relevant experience and when you can start."
+        hint={t("apply.messageHint")}
         counter={{ max: 2000 }}
       >
         {(props) => (
           <textarea
             className="textarea"
             maxLength={2000}
-            placeholder="I have 3 years' experience with…"
+            placeholder={t("apply.messagePlaceholder")}
             {...props}
           />
         )}
       </Field>
       <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={isPending}>
         <Send size={18} />
-        {isPending ? "Sending…" : "Send application"}
+        {isPending ? t("common.sending") : t("apply.send")}
       </button>
       <p className="subtle icon-inline" style={{ margin: 0, alignItems: "flex-start" }}>
         <ShieldAlert size={15} style={{ marginTop: 2 }} />
-        The employer sees your profile. Your phone number is shared only if they shortlist you.
+        {t("apply.privacy")}
       </p>
     </form>
   );
 }
 
 function ReportJob({ jobId }: { jobId: string }) {
+  const { t, tn } = useI18n();
   const { user } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [sent, setSent] = useState(false);
@@ -650,19 +644,22 @@ function ReportJob({ jobId }: { jobId: string }) {
       onSuccess: () => {
         dialogRef.current?.close();
         setSent(true);
-        toast("Thank you. Our moderators will review this job.");
+        toast(t("report.thanks"));
       },
     },
   );
 
-  if (sent) return <p className="subtle">You reported this job. Thank you for keeping the platform safe.</p>;
+  if (sent) return <p className="subtle">{t("report.sent")}</p>;
   if (!user) {
     return (
       <p className="subtle">
-        <Link className="link" to="/login">
-          Sign in
-        </Link>{" "}
-        to report a problem with this job.
+        {tn("report.signInPrompt", {
+          signIn: (
+            <Link className="link" to="/login">
+              {t("nav.signIn")}
+            </Link>
+          ),
+        })}
       </p>
     );
   }
@@ -670,7 +667,7 @@ function ReportJob({ jobId }: { jobId: string }) {
   return (
     <>
       <button type="button" className="btn btn-ghost btn-sm" onClick={() => dialogRef.current?.showModal()}>
-        <Flag size={16} /> Report this job
+        <Flag size={16} /> {t("report.button")}
       </button>
       <dialog ref={dialogRef} aria-labelledby="report-title">
         <form className="form" onSubmit={onSubmit} noValidate>
@@ -682,29 +679,40 @@ function ReportJob({ jobId }: { jobId: string }) {
               <Flag size={20} />
             </span>
             <h2 id="report-title" style={{ fontSize: "1.3rem", margin: 0 }}>
-              Report this job
+              {t("report.button")}
             </h2>
             <p className="muted" style={{ margin: "6px 0 0" }}>
-              Reports are confidential. The employer won't see who reported them.
+              {t("report.lead")}
             </p>
           </div>
           {formError && <Alert tone="error">{formError}</Alert>}
-          <Field label="What's wrong?" name="reason" error={fieldErrors.reason}>
+          <Field label={t("report.reason")} name="reason" error={fieldErrors.reason}>
             {(props) => (
               <select className="select" {...props} defaultValue="">
-                <Options items={REPORT_REASONS} placeholder="Choose a reason" />
+                <option value="">{t("report.chooseReason")}</option>
+                {REPORT_REASON_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {t(`reportReason.${key}`)}
+                  </option>
+                ))}
               </select>
             )}
           </Field>
-          <Field label="Details" optional name="details" error={fieldErrors.details} counter={{ max: 2000 }}>
+          <Field
+            label={t("report.details")}
+            optional
+            name="details"
+            error={fieldErrors.details}
+            counter={{ max: 2000 }}
+          >
             {(props) => <textarea className="textarea" maxLength={2000} {...props} />}
           </Field>
           <div className="row" style={{ justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-outline" onClick={() => dialogRef.current?.close()}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button type="submit" className="btn btn-danger" disabled={isPending}>
-              {isPending ? "Sending…" : "Send report"}
+              {isPending ? t("common.sending") : t("report.send")}
             </button>
           </div>
         </form>
