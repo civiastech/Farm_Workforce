@@ -3,7 +3,7 @@ import type { Language } from "@fwp/shared";
 /**
  * SMS wording in each interface language. Written without tone marks or special letters on
  * purpose: they force the expensive UCS-2 encoding (70 characters per SMS instead of 160).
- * Placeholders: {code}, {minutes}, {employer}, {job}, {url}.
+ * Placeholders: {code}, {minutes}, {days}, {n}, {employer}, {job}, {url}.
  */
 interface SmsTemplates {
   code: string;
@@ -11,6 +11,7 @@ interface SmsTemplates {
   hired: string;
   rejected: string;
   jobExpired: string;
+  newApplicants: string;
 }
 
 const SMS: Record<Language, SmsTemplates> = {
@@ -20,6 +21,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce: Congratulations! {employer} hired you for "{job}".',
     rejected: 'Farm Workforce: {employer} did not select you for "{job}". See new jobs: {url}',
     jobExpired: 'Farm Workforce: your job "{job}" closed after {days} days. Reopen it at {url}',
+    newApplicants: "Farm Workforce: you have new applicants ({n}). Review them at {url}",
   },
   pcm: {
     code: "{code} na your Farm Workforce code. E go expire for {minutes} minutes. No show anybody.",
@@ -28,6 +30,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce: Congrats! {employer} don hire you for "{job}".',
     rejected: 'Farm Workforce: {employer} no pick you for "{job}". Check new jobs: {url}',
     jobExpired: 'Farm Workforce: your job "{job}" don close after {days} days. Open am again for {url}',
+    newApplicants: "Farm Workforce: new people don apply for your jobs ({n}). Check dem for {url}",
   },
   ha: {
     code: "{code} ita ce lambar Farm Workforce dinka. Za ta kare cikin minti {minutes}. Kada ka nuna wa kowa.",
@@ -35,6 +38,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce: Barka! {employer} ya dauke ka aiki don "{job}".',
     rejected: 'Farm Workforce: {employer} bai zabe ka don "{job}" ba. Duba sababbin ayyuka: {url}',
     jobExpired: 'Farm Workforce: aikinka "{job}" ya rufe bayan kwana {days}. Sake bude shi a {url}',
+    newApplicants: "Farm Workforce: sababbin masu nema sun zo ({n}). Duba su a {url}",
   },
   yo: {
     code: "{code} ni koodu Farm Workforce re. Yoo pari ni iseju {minutes}. Ma fi han enikeni.",
@@ -42,6 +46,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce: E ku oriire! {employer} ti gba o sise fun "{job}".',
     rejected: 'Farm Workforce: {employer} ko yan o fun "{job}". Wo ise tuntun: {url}',
     jobExpired: 'Farm Workforce: ise re "{job}" ti pa leyin ojo {days}. Si i pada ni {url}',
+    newApplicants: "Farm Workforce: awon olubeere tuntun ({n}) ti de. Wo won ni {url}",
   },
   ig: {
     code: "{code} bu koodu Farm Workforce gi. O ga-agwu na nkeji {minutes}. Egosila onye obula.",
@@ -49,6 +54,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce: Ekele! {employer} ewerela gi n\'oru maka "{job}".',
     rejected: 'Farm Workforce: {employer} ahoroghi gi maka "{job}". Lee oru ohuru: {url}',
     jobExpired: 'Farm Workforce: oru gi "{job}" emechiela mgbe ubochi {days} gasiri. Megharia ya na {url}',
+    newApplicants: "Farm Workforce: ndi ohuru etinyela akwukwo ({n}). Lee ha na {url}",
   },
   fr: {
     code: "{code} est votre code Farm Workforce. Il expire dans {minutes} minutes. Ne le partagez avec personne.",
@@ -58,6 +64,7 @@ const SMS: Record<Language, SmsTemplates> = {
     rejected:
       'Farm Workforce : {employer} n\'a pas retenu votre candidature pour "{job}". Nouvelles offres : {url}',
     jobExpired: 'Farm Workforce : votre offre "{job}" a ete fermee apres {days} jours. Rouvrez-la sur {url}',
+    newApplicants: "Farm Workforce : nouvelles candidatures ({n}). Consultez-les sur {url}",
   },
 };
 
@@ -73,6 +80,7 @@ export function smsText(
     code?: string;
     minutes?: number;
     days?: number;
+    n?: number;
     employer?: string;
     job?: string;
     url?: string;

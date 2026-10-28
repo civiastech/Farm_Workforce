@@ -138,14 +138,15 @@ Then run `dc pull && dc up -d --wait`. Do not pass `--build`. If the packages ar
 
 ## 7. Operating it
 
-| Task                 | Command                                                                                                            |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Service status       | `dc ps`                                                                                                            |
-| Follow API logs      | `dc logs -f api`                                                                                                   |
-| Readiness (incl. DB) | `curl https://YOUR-DOMAIN/api/ready`                                                                               |
-| Database shell       | `dc exec db psql -U fwp -d fwp`                                                                                    |
-| Recent audit events  | `dc exec db psql -U fwp -d fwp -c "select created_at, action, host(ip) from audit_logs order by id desc limit 50"` |
-| Restart everything   | `dc restart`                                                                                                       |
+| Task                 | Command                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Service status       | `dc ps`                                                                                                                |
+| Follow API logs      | `dc logs -f api`                                                                                                       |
+| Readiness (incl. DB) | `curl https://YOUR-DOMAIN/api/ready`                                                                                   |
+| Database shell       | `dc exec db psql -U fwp -d fwp`                                                                                        |
+| Recent audit events  | `dc exec db psql -U fwp -d fwp -c "select created_at, action, host(ip) from audit_logs order by id desc limit 50"`     |
+| Moderator locked out | `dc exec api node dist/cli.js reset-password --email them@example.com` (prints a one-time password and signs them out) |
+| Restart everything   | `dc restart`                                                                                                           |
 
 **Notifications:** SMS and emails about applications go through an outbox table and are retried with back-off (30 s up to about 2 hours, six attempts). To see failures: `dc exec db psql -U fwp -d fwp -c "select created_at, channel, attempts, last_error from notifications where status <> 'sent' order by created_at desc limit 20"`. The API also deletes expired sessions and codes every hour.
 

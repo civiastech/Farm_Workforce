@@ -15,7 +15,7 @@ A job marketplace that connects agricultural workers and farm employers across N
 ## Features
 
 - **Workers:** register, build a profile (skills, experience, location), search and filter jobs, apply with a message, track and withdraw applications, get SMS (and email) updates in their own language.
-- **Employers:** organisation profile, post/edit/close jobs (with drafts), view applicants, shortlist, hire or decline.
+- **Employers:** organisation profile, post/edit/close jobs (with drafts), view applicants, shortlist, hire or decline. A summary of new applicants by email or SMS: straight away for the first, then at most once a day, in daytime.
 - **Privacy by design:** an applicant's phone and email are revealed only once they're shortlisted. Users can download all their data or delete their account.
 - **Trust & safety:** one-tap job reporting, a moderation queue, job takedown, verified-employer badges, and an audit log of security and moderation events.
 - **Accounts:** sign up with just a mobile number, verified by SMS code (email optional). Sign in with phone or email. Password reset by SMS code or email link, password change (signs out other devices), rate-limited sign-in.

@@ -1,12 +1,13 @@
 // Operational commands:
 //   cli create-admin --email ops@example.com --name "Ops Lead"   Creates an admin and prints a one-time password
+//   cli reset-password --email ops@example.com                   Sets a new one-time password and signs the user out
 //   cli seed [--force]                                           Loads demo data (refuses in production unless --force)
 import { emailSchema } from "@fwp/shared";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { createDatabase, type Database } from "./db/client";
-import { employerProfiles, jobs, users, workerProfiles } from "./db/schema";
+import { employerProfiles, jobs, sessions, users, workerProfiles } from "./db/schema";
 import { hashPassword } from "./lib/password";
 
 const { positionals, values } = parseArgs({
@@ -46,6 +47,23 @@ async function createAdmin(db: Database) {
   if (!created) throw new CliError(`A user with email ${email} already exists`);
 
   console.log(`Admin created: ${email}`);
+  console.log(`One-time password: ${password}`);
+  console.log("Sign in and change this password immediately (Account → Change password).");
+}
+
+/** For a locked-out moderator (or any user) when email or SMS reset isn't possible. */
+async function resetPassword(db: Database) {
+  const email = emailSchema.parse(values.email ?? "");
+  const password = randomBytes(18).toString("base64url");
+  const [user] = await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(password) })
+    .where(eq(users.email, email))
+    .returning({ id: users.id, role: users.role });
+  if (!user) throw new CliError(`No user with email ${email}`);
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  console.log(`Password reset for ${email} (${user.role}). All their sessions were signed out.`);
   console.log(`One-time password: ${password}`);
   console.log("Sign in and change this password immediately (Account → Change password).");
 }
@@ -262,9 +280,12 @@ const command = positionals[0];
 
 try {
   if (command === "create-admin") await createAdmin(db);
+  else if (command === "reset-password") await resetPassword(db);
   else if (command === "seed") await seed(db);
   else {
-    console.error("Usage: cli <create-admin --email <email> --name <name> | seed [--force]>");
+    console.error(
+      "Usage: cli <create-admin --email <email> --name <name> | reset-password --email <email> | seed [--force]>",
+    );
     process.exitCode = 1;
   }
 } catch (error) {

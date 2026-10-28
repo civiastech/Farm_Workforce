@@ -11,11 +11,13 @@ import {
   users,
   verificationCodes,
 } from "../db/schema";
+import { sendApplicantDigests } from "../services/digest";
 import { smsText } from "./messages";
 import type { OutboxMessage } from "./outbox";
 
 const DELIVERY_INTERVAL_MS = 5_000;
 const EXPIRY_INTERVAL_MS = 60_000;
+const DIGEST_INTERVAL_MS = 5 * 60_000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 /**
@@ -150,9 +152,19 @@ export function startBackgroundJobs(app: FastifyInstance): () => void {
     }
   };
 
+  const digest = async () => {
+    try {
+      const told = await sendApplicantDigests(app);
+      if (told) app.log.info({ employers: told }, "Sent new-applicant summaries");
+    } catch (error) {
+      app.log.error({ err: error }, "New-applicant summaries failed");
+    }
+  };
+
   const timers = [
     setInterval(() => void deliver(), DELIVERY_INTERVAL_MS),
     setInterval(() => void expire(), EXPIRY_INTERVAL_MS),
+    setInterval(() => void digest(), DIGEST_INTERVAL_MS),
     setInterval(() => void cleanup(), CLEANUP_INTERVAL_MS),
   ];
   void cleanup();

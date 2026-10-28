@@ -104,6 +104,8 @@ export const employerProfiles = pgTable("employer_profiles", {
   town: text("town"),
   description: text("description"),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  /** When the employer was last told about new applicants (at most once a day). */
+  applicantDigestAt: timestamp("applicant_digest_at", { withTimezone: true }),
   ...timestamps,
 });
 
