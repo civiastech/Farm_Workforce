@@ -88,9 +88,12 @@ export const router = createBrowserRouter([
           };
         },
         children: [
-          { index: true, element: <Navigate to="reports" replace /> },
+          { index: true, element: <Navigate to="overview" replace /> },
+          { path: "overview", ...lazyPage(admin, (m) => m.AdminOverviewPage) },
           { path: "reports", ...lazyPage(admin, (m) => m.AdminReportsPage) },
           { path: "employers", ...lazyPage(admin, (m) => m.AdminEmployersPage) },
+          { path: "users", ...lazyPage(admin, (m) => m.AdminUsersPage) },
+          { path: "messages", ...lazyPage(admin, (m) => m.AdminMessagesPage) },
           {
             path: "account",
             ...lazyPage(

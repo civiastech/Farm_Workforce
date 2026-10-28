@@ -82,6 +82,8 @@ export interface JobSummary {
   mealsProvided: boolean;
   status: JobStatus;
   createdAt: string;
+  /** When an open job closes automatically. */
+  expiresAt: string | null;
   employer: {
     organisationName: string;
     verified: boolean;
@@ -147,6 +149,45 @@ export interface AdminReport {
   resolvedAt: string | null;
   reporter: { id: string; fullName: string } | null;
   job: { id: string; title: string; status: JobStatus; employerId: string; organisationName: string } | null;
+}
+
+export interface AdminOverview {
+  workers: number;
+  employers: number;
+  signupsLast7Days: number;
+  openJobs: number;
+  applicationsLast7Days: number;
+  hiresLast30Days: number;
+  openReports: number;
+  unverifiedEmployers: number;
+  failedMessages: number;
+  pendingMessages: number;
+}
+
+export interface AdminUser {
+  id: string;
+  fullName: string;
+  role: Role;
+  email: string | null;
+  phone: string | null;
+  phoneVerified: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  suspended: boolean;
+}
+
+export interface AdminNotification {
+  id: string;
+  channel: "sms" | "email";
+  recipient: string;
+  subject: string | null;
+  body: string;
+  status: "pending" | "sent" | "failed";
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  sentAt: string | null;
+  user: { id: string; fullName: string } | null;
 }
 
 export interface AdminEmployer {

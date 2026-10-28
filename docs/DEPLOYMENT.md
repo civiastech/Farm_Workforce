@@ -51,21 +51,60 @@ docker compose -f compose.yaml -f compose.prod.yaml exec api \
 
 > Tip: `alias dc='docker compose -f compose.yaml -f compose.prod.yaml'` saves typing. The examples below use it.
 
-## 5. Backups
+## 5. Backups and monitoring
 
-Backups are compressed `pg_dump` files written to `./backups`.
+### Daily backups, copied off the server
+
+`deploy/scripts/backup.sh` writes a compressed, integrity-checked `pg_dump` to `./backups` (keeping the newest 14), then copies it to cloud storage. A backup kept only on the server is lost if the server is.
+
+**1. Create a storage bucket.** Any provider [rclone](https://rclone.org/overview/) supports works. Cheap choices are Backblaze B2, Cloudflare R2 and AWS S3. Create a private bucket (e.g. `fwp-backups`) and an access key that can only write to it.
+
+**2. Tell rclone about it.** rclone runs from Docker, so nothing needs installing:
 
 ```bash
-./deploy/scripts/backup.sh                                     # make one now
-crontab -e                                                     # then add a daily run:
+mkdir -p ~/.config/rclone
+docker run --rm -it -v ~/.config/rclone:/config/rclone rclone/rclone:1.69 config
+# n (new remote) → name: offsite → pick your provider → paste the key → accept the defaults
+```
+
+**3. Add the destination and a heartbeat to `.env`:**
+
+```bash
+BACKUP_REMOTE=offsite:fwp-backups        # <remote name>:<bucket>
+BACKUP_REMOTE_DAYS=30                    # off-site copies older than this are deleted
+BACKUP_HEARTBEAT_URL=https://hc-ping.com/your-check-id
+```
+
+For the heartbeat, create a free check at [healthchecks.io](https://healthchecks.io) with period **1 day** and grace **2 hours**, and copy its ping URL. The script pings it after every successful backup and pings `/fail` when a backup fails. If backups fail or stop running, healthchecks.io emails you.
+
+**4. Run one now, then schedule it daily:**
+
+```bash
+./deploy/scripts/backup.sh                                     # should end with "copied off-site"
+crontab -e                                                     # then add:
 30 2 * * * cd /srv/farm-workforce-platform && ./deploy/scripts/backup.sh >> backups/backup.log 2>&1
 ```
 
-**Copy backups off the server**, for example with `rclone` to object storage. A backup kept on the same disk doesn't protect you if that disk fails. Test a restore regularly:
+**5. Test a restore** before launch, and then every few months. Restoring replaces the live database, so on a production server only do it to recover. To practise, use a spare server or your own machine:
 
 ```bash
+# Fetch a copy back from off-site storage, then restore it
+docker run --rm -v ~/.config/rclone:/config/rclone -v "$PWD/backups:/backups" \
+  rclone/rclone:1.69 copy offsite:fwp-backups/fwp-YYYYMMDDTHHMMSSZ.sql.gz /backups
 ./deploy/scripts/restore.sh backups/fwp-YYYYMMDDTHHMMSSZ.sql.gz
 ```
+
+### Uptime monitoring
+
+Use a free external monitor such as [UptimeRobot](https://uptimerobot.com) or [Better Stack](https://betterstack.com/uptime):
+
+| Monitor               | Settings                                                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Site and database** | HTTP(S) check on `https://YOUR-DOMAIN/api/ready` every 5 minutes. Alert if it isn't `200`. It returns `503` when the database is down. |
+| **Certificate**       | SSL expiry alert 14 days before expiry. Caddy renews automatically, so an alert means renewal is failing.                              |
+| **Backups**           | The healthchecks.io heartbeat above.                                                                                                   |
+
+Send alerts to at least two people, by email plus SMS or a mobile app. A monitor that only alerts one inbox nobody watches isn't monitoring.
 
 ## 6. Updating to a new version
 
@@ -102,7 +141,7 @@ Then run `dc pull && dc up -d --wait`. Do not pass `--build`. If the packages ar
 
 **Notifications:** SMS and emails about applications go through an outbox table and are retried with back-off (30 s up to about 2 hours, six attempts). To see failures: `dc exec db psql -U fwp -d fwp -c "select created_at, channel, attempts, last_error from notifications where status <> 'sent' order by created_at desc limit 20"`. The API also deletes expired sessions and codes every hour.
 
-**Monitoring:** point an uptime checker at `https://YOUR-DOMAIN/api/ready`. It returns `503` if the database is unreachable. API logs are structured JSON (one line per request, with a request ID), ready for any log shipper.
+**Logs:** API logs are structured JSON (one line per request, with a request ID), ready for any log shipper.
 
 ## Configuration reference (API)
 

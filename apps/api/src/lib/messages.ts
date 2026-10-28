@@ -10,6 +10,7 @@ interface SmsTemplates {
   shortlisted: string;
   hired: string;
   rejected: string;
+  jobExpired: string;
 }
 
 const SMS: Record<Language, SmsTemplates> = {
@@ -18,6 +19,7 @@ const SMS: Record<Language, SmsTemplates> = {
     shortlisted: 'Farm Workforce: {employer} shortlisted you for "{job}". They may call you on this number.',
     hired: 'Farm Workforce: Congratulations! {employer} hired you for "{job}".',
     rejected: 'Farm Workforce: {employer} did not select you for "{job}". See new jobs: {url}',
+    jobExpired: 'Farm Workforce: your job "{job}" closed after {days} days. Reopen it at {url}',
   },
   pcm: {
     code: "{code} na your Farm Workforce code. E go expire for {minutes} minutes. No show anybody.",
@@ -25,24 +27,28 @@ const SMS: Record<Language, SmsTemplates> = {
       'Farm Workforce: {employer} don shortlist you for "{job}". Dem fit call you for this number.',
     hired: 'Farm Workforce: Congrats! {employer} don hire you for "{job}".',
     rejected: 'Farm Workforce: {employer} no pick you for "{job}". Check new jobs: {url}',
+    jobExpired: 'Farm Workforce: your job "{job}" don close after {days} days. Open am again for {url}',
   },
   ha: {
     code: "{code} ita ce lambar Farm Workforce dinka. Za ta kare cikin minti {minutes}. Kada ka nuna wa kowa.",
     shortlisted: 'Farm Workforce: {employer} ya zabe ka don "{job}". Za su iya kiran ka a wannan lamba.',
     hired: 'Farm Workforce: Barka! {employer} ya dauke ka aiki don "{job}".',
     rejected: 'Farm Workforce: {employer} bai zabe ka don "{job}" ba. Duba sababbin ayyuka: {url}',
+    jobExpired: 'Farm Workforce: aikinka "{job}" ya rufe bayan kwana {days}. Sake bude shi a {url}',
   },
   yo: {
     code: "{code} ni koodu Farm Workforce re. Yoo pari ni iseju {minutes}. Ma fi han enikeni.",
     shortlisted: 'Farm Workforce: {employer} ti yan o fun "{job}". Won le pe o lori nomba yii.',
     hired: 'Farm Workforce: E ku oriire! {employer} ti gba o sise fun "{job}".',
     rejected: 'Farm Workforce: {employer} ko yan o fun "{job}". Wo ise tuntun: {url}',
+    jobExpired: 'Farm Workforce: ise re "{job}" ti pa leyin ojo {days}. Si i pada ni {url}',
   },
   ig: {
     code: "{code} bu koodu Farm Workforce gi. O ga-agwu na nkeji {minutes}. Egosila onye obula.",
     shortlisted: 'Farm Workforce: {employer} ahoputala gi maka "{job}". Ha nwere ike ikpo gi na nomba a.',
     hired: 'Farm Workforce: Ekele! {employer} ewerela gi n\'oru maka "{job}".',
     rejected: 'Farm Workforce: {employer} ahoroghi gi maka "{job}". Lee oru ohuru: {url}',
+    jobExpired: 'Farm Workforce: oru gi "{job}" emechiela mgbe ubochi {days} gasiri. Megharia ya na {url}',
   },
   fr: {
     code: "{code} est votre code Farm Workforce. Il expire dans {minutes} minutes. Ne le partagez avec personne.",
@@ -51,6 +57,7 @@ const SMS: Record<Language, SmsTemplates> = {
     hired: 'Farm Workforce : Felicitations ! {employer} vous a embauche pour "{job}".',
     rejected:
       'Farm Workforce : {employer} n\'a pas retenu votre candidature pour "{job}". Nouvelles offres : {url}',
+    jobExpired: 'Farm Workforce : votre offre "{job}" a ete fermee apres {days} jours. Rouvrez-la sur {url}',
   },
 };
 
@@ -62,7 +69,14 @@ function clip(value: string, max: number) {
 export function smsText(
   language: Language,
   key: keyof SmsTemplates,
-  values: { code?: string; minutes?: number; employer?: string; job?: string; url?: string },
+  values: {
+    code?: string;
+    minutes?: number;
+    days?: number;
+    employer?: string;
+    job?: string;
+    url?: string;
+  },
 ): string {
   const template = SMS[language][key] ?? SMS.en[key];
   return template.replace(/\{(\w+)\}/g, (_, name: string) => {

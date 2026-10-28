@@ -86,6 +86,29 @@ export function CategoryIcon({ category, size = 20 }: { category: JobCategory; s
 
 // ---------------------------------------------------------------- Feedback
 
+/** A big number with a label, for dashboards. */
+export function StatCard({
+  icon: Icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: LucideIcon;
+  value: number;
+  label: string;
+  tone?: "gold";
+}) {
+  return (
+    <div className="stat-card">
+      <span className={`tile-icon ${tone ?? ""}`}>
+        <Icon size={19} />
+      </span>
+      <strong className="num">{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
 export function Badge({ tone, dot, children }: { tone: Tone | "new"; dot?: boolean; children: ReactNode }) {

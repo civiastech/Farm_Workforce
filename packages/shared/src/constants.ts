@@ -123,5 +123,8 @@ export const MAX_PAGE_SIZE = 50;
 export const VERIFICATION_PURPOSES = ["register", "change_phone", "reset"] as const;
 export type VerificationPurpose = (typeof VERIFICATION_PURPOSES)[number];
 export const CODE_LENGTH = 6;
+
+/** Open jobs close automatically this many days after they were opened (or reopened). */
+export const JOB_LISTING_DAYS = 30;
 /** Minimum wait before another code can be sent to the same number. */
 export const CODE_RESEND_SECONDS = 60;

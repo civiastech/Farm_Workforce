@@ -12,11 +12,13 @@ import {
   type JobDetail,
   type PayPeriod,
   type ProfileResponse,
+  JOB_LISTING_DAYS,
 } from "@fwp/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Briefcase,
+  Clock,
   Eye,
   FileText,
   Inbox,
@@ -25,6 +27,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   Users,
   Wallet,
 } from "lucide-react";
@@ -51,6 +54,57 @@ import { useToast } from "../lib/toast";
 import { usePageTitle } from "../lib/usePageTitle";
 
 // ---------------------------------------------------------------- My jobs
+
+/** Within this many days of closing, an open job offers "Renew". */
+const RENEW_WINDOW_DAYS = 5;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function useDaysLeft(expiresAt: string | null) {
+  const [now] = useState(() => Date.now());
+  return expiresAt ? Math.ceil((new Date(expiresAt).getTime() - now) / DAY_MS) : null;
+}
+
+function ListingExpiryChip({ job }: { job: EmployerJob }) {
+  const { t, tp } = useI18n();
+  const daysLeft = useDaysLeft(job.expiresAt);
+  if (job.status !== "open" || daysLeft === null) return null;
+  return (
+    <span className={`chip ${daysLeft <= RENEW_WINDOW_DAYS ? "chip-gold" : ""}`}>
+      <Clock size={13} /> {daysLeft <= 0 ? t("ejobs.closesToday") : tp("ejobs.closesIn", daysLeft)}
+    </span>
+  );
+}
+
+/** Renew an open job that is about to close, or reopen a closed one, for a fresh listing period. */
+function ListingRenewButton({ job }: { job: EmployerJob }) {
+  const { t, errorMessage } = useI18n();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const daysLeft = useDaysLeft(job.expiresAt);
+  const renew = useMutation({
+    mutationFn: () => api.patch(`/jobs/${job.id}`, { status: "open" }),
+    onSuccess: () => {
+      toast(t("ejobs.renewed", { n: JOB_LISTING_DAYS }));
+      queryClient.invalidateQueries({ queryKey: ["employer-jobs"] });
+    },
+    onError: (error) => toast(errorMessage(error)),
+  });
+
+  const closed = job.status === "closed";
+  const expiring = job.status === "open" && daysLeft !== null && daysLeft <= RENEW_WINDOW_DAYS;
+  if (!closed && !expiring) return null;
+  return (
+    <button
+      type="button"
+      className="btn btn-outline btn-sm"
+      disabled={renew.isPending}
+      onClick={() => renew.mutate()}
+    >
+      <RefreshCw size={15} />{" "}
+      {closed ? t("ejobs.reopen", { n: JOB_LISTING_DAYS }) : t("ejobs.renew", { n: JOB_LISTING_DAYS })}
+    </button>
+  );
+}
 
 export function EmployerJobsPage() {
   const { t, tp, timeAgo } = useI18n();
@@ -115,6 +169,7 @@ export function EmployerJobsPage() {
                 </div>
                 <div className="spread">
                   <div className="chips">
+                    <ListingExpiryChip job={job} />
                     <span className="chip">
                       <Users size={13} /> {tp("ejobs.applicants", total)}
                     </span>
@@ -135,6 +190,7 @@ export function EmployerJobsPage() {
                     )}
                   </div>
                   <div className="row">
+                    <ListingRenewButton job={job} />
                     {job.status !== "removed" && (
                       <Link className="btn btn-ghost btn-sm" to={`/dashboard/jobs/${job.id}/edit`}>
                         <Pencil size={15} /> {t("ejobs.edit")}
@@ -460,7 +516,7 @@ function JobEditorForm({ job, employer }: { job?: JobDetail; employer: ProfileRe
               label={t("editor.status")}
               name="status"
               error={fieldErrors.status}
-              hint={t("editor.statusHint")}
+              hint={`${t("editor.statusHint")} ${t("editor.expiryNote", { n: JOB_LISTING_DAYS })}`}
             >
               {(props) => (
                 <select

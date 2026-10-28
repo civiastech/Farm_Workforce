@@ -129,10 +129,13 @@ export const jobs = pgTable(
     startDate: date("start_date"),
     status: jobStatusEnum("status").notNull().default("open"),
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** Open jobs close automatically at this time; reopening sets a new one. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [
     index("jobs_status_published_idx").on(t.status, t.publishedAt),
+    index("jobs_status_expires_idx").on(t.status, t.expiresAt),
     index("jobs_employer_idx").on(t.employerId),
     index("jobs_state_idx").on(t.state),
     index("jobs_category_idx").on(t.category),

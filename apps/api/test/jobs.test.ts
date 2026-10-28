@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { users } from "../src/db/schema";
+import { closeExpiredJobs } from "../src/lib/background";
 import { hashPassword } from "../src/lib/password";
 import {
   Client,
@@ -291,5 +292,48 @@ describe("account data rights", () => {
         .statusCode,
     ).toBe(401);
     expect((await employer.get(`/api/employer/jobs/${jobId}/applications`)).json().items).toHaveLength(0);
+  });
+});
+
+describe("listing expiry", () => {
+  it("closes a job after its listing period, tells the employer, and lets them reopen it", async () => {
+    const { client: employer, email: employerEmail } = await registerEmployer(ctx.app);
+    const { client: worker } = await registerWorker(ctx.app);
+    const jobId = await postJob(employer);
+
+    const job = (await employer.get(`/api/jobs/${jobId}`)).json();
+    const days = (new Date(job.expiresAt).getTime() - Date.now()) / 86_400_000;
+    expect(days).toBeGreaterThan(29.9);
+    expect(days).toBeLessThanOrEqual(30);
+
+    // Nothing to close yet.
+    expect(await closeExpiredJobs(ctx.app)).toBe(0);
+
+    await ctx.sql`update jobs set expires_at = now() - interval '1 minute' where id = ${jobId}`;
+    expect(await closeExpiredJobs(ctx.app)).toBe(1);
+
+    expect((await worker.get(`/api/jobs/${jobId}`)).json().status).toBe("closed");
+    expect((await worker.get("/api/jobs")).json().total).toBe(0);
+    const apply = await worker.post(`/api/jobs/${jobId}/applications`, {});
+    expect(apply.json().error.code).toBe("job_closed");
+
+    await ctx.app.outbox.processDue();
+    const notice = ctx.mailer.sent.find((m) => m.to === employerEmail);
+    expect(notice?.subject).toBe(`Your job has closed: ${sampleJob.title}`);
+    const [audit] =
+      await ctx.sql`select action from audit_logs where entity_id = ${jobId} order by id desc limit 1`;
+    expect(audit!.action).toBe("job.expired");
+
+    const reopen = await employer.patch(`/api/jobs/${jobId}`, { status: "open" });
+    expect(reopen.statusCode).toBe(200);
+    const reopened = (await employer.get(`/api/jobs/${jobId}`)).json();
+    expect(reopened.status).toBe("open");
+    expect(new Date(reopened.expiresAt).getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000);
+  });
+
+  it("does not set an expiry on drafts", async () => {
+    const { client: employer } = await registerEmployer(ctx.app);
+    const jobId = await postJob(employer, { status: "draft" });
+    expect((await employer.get(`/api/jobs/${jobId}`)).json().expiresAt).toBeNull();
   });
 });

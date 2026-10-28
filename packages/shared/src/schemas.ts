@@ -14,6 +14,7 @@ import {
   PAY_PERIOD_KEYS,
   REPORT_REASON_KEYS,
   REPORT_STATUSES,
+  ROLES,
   SIGNUP_ROLES,
 } from "./constants";
 import { vm } from "./validation-messages";
@@ -288,4 +289,19 @@ export const reportListSchema = paginationSchema.extend({
 
 export const employerVerificationSchema = z.object({
   verified: z.boolean(),
+});
+
+export const adminUserListSchema = paginationSchema.extend({
+  /** Matches name, email or phone (any common phone format). */
+  q: optionalText(100),
+  role: z.preprocess(emptyToUndefined, z.enum(ROLES).optional()),
+});
+
+export const userSuspensionSchema = z.object({
+  suspended: z.boolean(),
+  reason: optionalText(500),
+});
+
+export const notificationListSchema = paginationSchema.extend({
+  status: z.preprocess(emptyToUndefined, z.enum(["pending", "sent", "failed"]).default("failed")),
 });

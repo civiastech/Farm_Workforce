@@ -21,7 +21,7 @@ import { audit } from "../lib/audit";
 import { AppError, badRequest, notFound } from "../lib/errors";
 import { parse } from "../lib/validation";
 import { requireRole, requireUser } from "../plugins/auth";
-import { jobSummaryColumns, likePattern, toJobSummary } from "../services/jobs";
+import { jobSummaryColumns, likePattern, listingExpiry, toJobSummary } from "../services/jobs";
 
 // ~22 working days or ~4.33 weeks per month.
 const monthlyPayMax = sql`case ${jobs.payPeriod} when 'day' then ${jobs.payMax} * 22 when 'week' then ${jobs.payMax} * 13 / 3 else ${jobs.payMax} end`;
@@ -152,6 +152,7 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
         startDate: input.startDate ?? null,
         employerId: user.id,
         publishedAt: input.status === "open" ? new Date() : null,
+        expiresAt: input.status === "open" ? listingExpiry() : null,
       })
       .returning({ id: jobs.id });
 
@@ -179,6 +180,8 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
       .set({
         ...input,
         ...(input.status === "open" && !job.publishedAt ? { publishedAt: new Date() } : {}),
+        // Opening, reopening or extending an open job starts a fresh listing period.
+        ...(input.status === "open" ? { expiresAt: listingExpiry() } : {}),
       })
       .where(eq(jobs.id, id));
 

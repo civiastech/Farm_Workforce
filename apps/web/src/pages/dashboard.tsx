@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
-import { Alert, Badge, EmptyState, JobCard, Meter, Spinner } from "../components/ui";
+import { Alert, Badge, EmptyState, JobCard, Meter, Spinner, StatCard } from "../components/ui";
 import { useI18n, type MessageKey } from "../i18n";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -59,28 +59,6 @@ export function DashboardLayout() {
           <Outlet />
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon: Icon,
-  value,
-  label,
-  tone,
-}: {
-  icon: LucideIcon;
-  value: number;
-  label: string;
-  tone?: "gold";
-}) {
-  return (
-    <div className="stat-card">
-      <span className={`tile-icon ${tone ?? ""}`}>
-        <Icon size={19} />
-      </span>
-      <strong className="num">{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }

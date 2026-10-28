@@ -34,8 +34,9 @@ Code can't settle these. Each one needs a person to own it.
 **Operations**
 
 - [ ] Real SMTP provider configured, with SPF, DKIM and DMARC records for the sending domain. Test a password reset end to end.
-- [ ] Off-server backups running, and **one restore actually tested**.
-- [ ] Uptime monitoring on `/api/ready` with alerts to a person.
+- [ ] Off-site backups running (`BACKUP_REMOTE` set, healthchecks.io heartbeat green), and **one restore actually tested**.
+- [ ] Uptime monitoring on `/api/ready` and certificate expiry, with alerts to at least two people.
+- [ ] Moderators know the console: Overview for what needs attention, Users to suspend scammers, Messages for failed SMS.
 - [ ] At least two people have moderator accounts. Define a target response time for reports.
 - [ ] A written employer-verification procedure (e.g. CAC registration check plus a phone call) before anyone clicks "Verify".
 
