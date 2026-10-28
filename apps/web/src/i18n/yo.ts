@@ -167,7 +167,7 @@ const yo: Messages = {
   "how.w2t": "Béèrè pẹ̀lú ìfọwọ́kan kan",
   "how.w2b": "Gbogbo iṣẹ́ ń fi owó-oṣù, ibi, ibùgbé àti oúnjẹ hàn ní kedere.",
   "how.w3t": "Kí wọ́n yàn ọ́",
-  "how.w3b": "Ìgbà yẹn nìkan ni agbanisíṣẹ́ á rí nọ́mbà rẹ — a ó sì fi ímeèlì sọ gbogbo ìlọsíwájú fún ọ.",
+  "how.w3b": "Ìgbà yẹn nìkan ni agbanisíṣẹ́ yóò rí nọ́mbà rẹ — a sì ń fi SMS sọ gbogbo ìròyìn fún ọ.",
   "how.e1t": "Fi iṣẹ́ síta ní ìṣẹ́jú díẹ̀",
   "how.e1b": "Ṣàlàyé iṣẹ́ náà, owó-oṣù àti ipò. Wo àwòkọ́ṣe bí o ṣe ń kọ ọ́.",
   "how.e2t": "Ṣàyẹ̀wò àwọn tó béèrè",
@@ -273,7 +273,7 @@ const yo: Messages = {
   "apply.messagePlaceholder": "Mo ní ìrírí ọdún mẹ́ta nínú…",
   "apply.send": "Fi ìbéèrè ránṣẹ́",
   "apply.privacy": "Agbanisíṣẹ́ á rí àkọsílẹ̀ rẹ. Nọ́mbà fóònù rẹ á hàn bí wọ́n bá yàn ọ́ nìkan.",
-  "apply.sent": "A ti fi ìbéèrè ránṣẹ́! A ó fi ímeèlì sọ fún ọ nígbà tí agbanisíṣẹ́ bá dáhùn.",
+  "apply.sent": "A ti fi ìbéèrè ránṣẹ́! A ó fi SMS sọ fún ọ nígbà tí agbanisíṣẹ́ bá dáhùn.",
 
   "report.button": "Fi ẹjọ́ iṣẹ́ yìí sùn",
   "report.lead": "Àṣírí ni ìfẹ̀sùnkàn. Agbanisíṣẹ́ kò ní mọ ẹni tó fi ẹjọ́ sùn.",
@@ -422,7 +422,8 @@ const yo: Messages = {
   "profile.saveOrg": "Fi ilé-iṣẹ́ pamọ́",
 
   "apps.title": "Àwọn ìbéèrè mi",
-  "apps.lead": "A ó fi ímeèlì sọ fún ọ nígbàkúùgbà tí agbanisíṣẹ́ bá ṣe àyípadà sí ìbéèrè rẹ.",
+  "apps.lead":
+    "A ó fi SMS (àti ímeèlì, tí o bá fi kún un) sọ fún ọ nígbàkúùgbà tí agbanisíṣẹ́ bá ṣe àyípadà sí ìbéèrè rẹ.",
   "apps.tabs": "Ṣẹ́ àwọn ìbéèrè",
   "apps.all": "Gbogbo",
   "apps.inProgress": "Ó ń lọ lọ́wọ́",
@@ -500,7 +501,7 @@ const yo: Messages = {
   "applicants.notSuitable": "Kò bá a mu",
   "applicants.markHired": "Sàmì pé o gbà á",
   "applicants.reconsider": "Tún ronú",
-  "applicants.shortlistedToast": "O ti yàn án. Nọ́mbà rẹ̀ ti hàn, a sì ti fi ímeèlì ránṣẹ́ sí i.",
+  "applicants.shortlistedToast": "O ti yàn án. Nọ́mbà rẹ̀ ti hàn, a sì ti fi SMS sọ fún un.",
   "applicants.updatedToast": "A ti ṣe àyípadà. A ó fi ímeèlì sọ fún un.",
   "applicants.noneInGroup": "Kò sí ẹnikẹ́ni nínú ẹgbẹ́ yìí síbẹ̀.",
 

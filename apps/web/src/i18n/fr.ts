@@ -168,7 +168,7 @@ const fr: Messages = {
   "how.w2b": "Chaque offre indique le salaire, le lieu, le logement et les repas.",
   "how.w3t": "Soyez présélectionné",
   "how.w3b":
-    "Ce n'est qu'à ce moment que l'employeur voit votre numéro — et nous vous informons par e-mail à chaque étape.",
+    "Ce n'est qu'alors que l'employeur voit votre numéro — et nous vous envoyons chaque nouvelle par SMS.",
   "how.e1t": "Publiez une offre en quelques minutes",
   "how.e1b": "Décrivez le poste, le salaire et les conditions, avec un aperçu en direct.",
   "how.e2t": "Examinez de vrais candidats",
@@ -277,7 +277,7 @@ const fr: Messages = {
   "apply.messagePlaceholder": "J'ai 3 ans d'expérience en…",
   "apply.send": "Envoyer la candidature",
   "apply.privacy": "L'employeur voit votre profil. Votre numéro n'est partagé que s'il vous présélectionne.",
-  "apply.sent": "Candidature envoyée ! Nous vous écrirons dès que l'employeur répond.",
+  "apply.sent": "Candidature envoyée ! Nous vous enverrons un SMS dès que l'employeur répond.",
 
   "report.button": "Signaler cette offre",
   "report.lead": "Les signalements sont confidentiels. L'employeur ne saura pas qui l'a signalé.",
@@ -428,7 +428,8 @@ const fr: Messages = {
   "profile.saveOrg": "Enregistrer l'organisation",
 
   "apps.title": "Mes candidatures",
-  "apps.lead": "Nous vous écrivons dès qu'un employeur met à jour votre candidature.",
+  "apps.lead":
+    "Nous vous envoyons un SMS (et un e-mail si vous en avez ajouté un) dès qu'un employeur met à jour votre candidature.",
   "apps.tabs": "Filtrer les candidatures",
   "apps.all": "Toutes",
   "apps.inProgress": "En cours",
@@ -510,7 +511,7 @@ const fr: Messages = {
   "applicants.markHired": "Marquer comme embauché",
   "applicants.reconsider": "Reconsidérer",
   "applicants.shortlistedToast":
-    "Présélectionné. Ses coordonnées sont visibles et nous l'avons prévenu par e-mail.",
+    "Présélectionné. Ses coordonnées sont maintenant visibles et nous l'avons prévenu par SMS.",
   "applicants.updatedToast": "Candidat mis à jour. Il sera prévenu par e-mail.",
   "applicants.noneInGroup": "Aucun candidat dans ce groupe.",
 

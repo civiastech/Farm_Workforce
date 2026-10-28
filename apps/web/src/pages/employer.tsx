@@ -13,6 +13,7 @@ import {
   type PayPeriod,
   type ProfileResponse,
   JOB_LISTING_DAYS,
+  formatPhone,
 } from "@fwp/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -696,7 +697,7 @@ export function JobApplicantsPage() {
                   {w.phone && (
                     <div className="contact-row">
                       <a className="btn btn-outline btn-sm" href={`tel:${w.phone}`}>
-                        <Phone size={15} /> {w.phone}
+                        <Phone size={15} /> {formatPhone(w.phone)}
                       </a>
                       {w.email && (
                         <a className="btn btn-outline btn-sm" href={`mailto:${w.email}`}>

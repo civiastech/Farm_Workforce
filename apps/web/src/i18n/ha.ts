@@ -167,7 +167,7 @@ const ha: Messages = {
   "how.w2t": "Nema da taɓawa ɗaya",
   "how.w2b": "Kowane aiki yana nuna albashi, wuri, masauki da abinci tun farko.",
   "how.w3t": "A zaɓe ka",
-  "how.w3b": "Sai lokacin ne mai ɗaukar aiki zai ga lambarka — kuma za mu aiko maka da imel a kowane mataki.",
+  "how.w3b": "Sai a lokacin ne mai ɗaukar aiki zai ga lambarka — kuma muna tura maka kowane labari ta SMS.",
   "how.e1t": "Saka aiki cikin mintuna",
   "how.e1b": "Bayyana aikin, albashi da sharuɗɗa. Ka ga samfoti yayin da kake rubutu.",
   "how.e2t": "Duba masu nema na gaske",
@@ -274,7 +274,7 @@ const ha: Messages = {
   "apply.messagePlaceholder": "Ina da gogewar shekara uku a…",
   "apply.send": "Aika buƙata",
   "apply.privacy": "Mai ɗaukar aiki zai ga bayananka. Sai idan ya zaɓe ka ne zai ga lambar wayarka.",
-  "apply.sent": "An aika buƙata! Za mu aiko maka da imel idan mai ɗaukar aiki ya amsa.",
+  "apply.sent": "An aika buƙata! Za mu tura maka saƙon SMS idan mai ɗaukar aiki ya amsa.",
 
   "report.button": "Kai rahoton wannan aikin",
   "report.lead": "Rahotanni a ɓoye suke. Mai ɗaukar aiki ba zai san wanda ya kai rahoto ba.",
@@ -423,7 +423,8 @@ const ha: Messages = {
   "profile.saveOrg": "Adana kamfani",
 
   "apps.title": "Buƙatuna",
-  "apps.lead": "Za mu aiko maka da imel duk lokacin da mai ɗaukar aiki ya sabunta buƙatarka.",
+  "apps.lead":
+    "Za mu tura maka SMS (da imel, idan ka ƙara) duk lokacin da mai ɗaukar aiki ya sabunta buƙatarka.",
   "apps.tabs": "Tace buƙatu",
   "apps.all": "Duka",
   "apps.inProgress": "Ana ci gaba",
@@ -502,7 +503,8 @@ const ha: Messages = {
   "applicants.notSuitable": "Bai dace ba",
   "applicants.markHired": "Alama an ɗauka",
   "applicants.reconsider": "Sake dubawa",
-  "applicants.shortlistedToast": "An zaɓa. Bayanan tuntuɓarsu suna bayyane yanzu, kuma mun aika musu imel.",
+  "applicants.shortlistedToast":
+    "An zaɓa. Bayanan tuntuɓarsu suna bayyane yanzu, kuma mun sanar da su ta SMS.",
   "applicants.updatedToast": "An sabunta. Za a sanar da su ta imel.",
   "applicants.noneInGroup": "Babu kowa a wannan rukuni tukuna.",
 

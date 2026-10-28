@@ -167,7 +167,7 @@ const ig: Messages = {
   "how.w2b": "Ọrụ ọ bụla na-egosi ụgwọ, ebe, ụlọ na nri site na mbido.",
   "how.w3t": "Ka a họrọ gị",
   "how.w3b":
-    "Naanị mgbe ahụ ka onye were n'ọrụ ga-ahụ nọmba gị — anyị ga-ezitekwa gị email na nzọụkwụ ọ bụla.",
+    "Naanị mgbe ahụ ka onye were n'ọrụ ga-ahụ nọmba gị — anyị na-ezitekwara gị ozi ọ bụla site na SMS.",
   "how.e1t": "Tinye ọrụ n'ime nkeji ole na ole",
   "how.e1b": "Kọwaa ọrụ, ụgwọ na ọnọdụ. Hụ nlele ka ị na-ede.",
   "how.e2t": "Nyochaa ndị tinyere akwụkwọ",
@@ -274,7 +274,7 @@ const ig: Messages = {
   "apply.send": "Ziga akwụkwọ",
   "apply.privacy":
     "Onye were n'ọrụ ga-ahụ profaịlụ gị. Naanị ọ bụrụ na ha họrọ gị ka ha ga-ahụ nọmba ekwentị gị.",
-  "apply.sent": "E zigala akwụkwọ! Anyị ga-ezitere gị email mgbe onye were n'ọrụ zara.",
+  "apply.sent": "E zigala akwụkwọ! Anyị ga-ezitere gị SMS mgbe onye were n'ọrụ zara.",
 
   "report.button": "Kọọ ọrụ a",
   "report.lead": "Akụkọ bụ nzuzo. Onye were n'ọrụ agaghị ama onye kọrọ.",
@@ -424,7 +424,8 @@ const ig: Messages = {
   "profile.saveOrg": "Chekwaa ụlọ ọrụ",
 
   "apps.title": "Akwụkwọ m",
-  "apps.lead": "Anyị ga-ezitere gị email mgbe ọ bụla onye were n'ọrụ melitere akwụkwọ gị.",
+  "apps.lead":
+    "Anyị ga-ezitere gị SMS (na email, ọ bụrụ na i tinyere) mgbe ọ bụla onye were n'ọrụ melitere akwụkwọ gị.",
   "apps.tabs": "Họcha akwụkwọ",
   "apps.all": "Niile",
   "apps.inProgress": "Ọ na-aga n'ihu",
@@ -503,7 +504,7 @@ const ig: Messages = {
   "applicants.notSuitable": "Ọ dabaghị",
   "applicants.markHired": "Kaa akara na e were ya",
   "applicants.reconsider": "Tụgharịa uche",
-  "applicants.shortlistedToast": "A họọrọ ya. Nkọwa kọntaktị ya dị ugbu a, anyị ezigakwara ya email.",
+  "applicants.shortlistedToast": "A họọrọ ya. Nkọwa kọntaktị ya dị ugbu a, anyị ezigakwara ya SMS.",
   "applicants.updatedToast": "Emelitela. A ga-eziga ya email.",
   "applicants.noneInGroup": "Ọ dịbeghị onye nọ n'otu a.",
 

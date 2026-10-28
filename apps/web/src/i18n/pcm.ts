@@ -167,7 +167,7 @@ const pcm: Messages = {
   "how.w2t": "Apply with one touch",
   "how.w2b": "Every job dey show the pay, place, house and food from the start.",
   "how.w3t": "Make dem pick you",
-  "how.w3b": "Na only then employer go see your number — and we go email you every update.",
+  "how.w3b": "Na only then employer go see your number — and we go send you SMS for every update.",
   "how.e1t": "Post job quick quick",
   "how.e1b": "Talk wetin the work be, the pay and condition. You go see preview as you dey type.",
   "how.e2t": "Check real people wey apply",
@@ -274,7 +274,7 @@ const pcm: Messages = {
   "apply.messagePlaceholder": "I don do dis kind work for 3 years…",
   "apply.send": "Send application",
   "apply.privacy": "Employer go see your profile. Na only if dem pick you, dem go see your phone number.",
-  "apply.sent": "Application don go! We go email you when employer answer.",
+  "apply.sent": "Application don go! We go send you SMS when employer answer.",
 
   "report.button": "Report dis job",
   "report.lead": "Report na secret. Employer no go know who report.",
@@ -423,7 +423,7 @@ const pcm: Messages = {
   "profile.saveOrg": "Save company",
 
   "apps.title": "My applications",
-  "apps.lead": "We go email you anytime employer update your application.",
+  "apps.lead": "We go send you SMS (and email, if you add one) anytime employer update your application.",
   "apps.tabs": "Filter applications",
   "apps.all": "All",
   "apps.inProgress": "Still dey go",
@@ -502,7 +502,7 @@ const pcm: Messages = {
   "applicants.notSuitable": "E no fit",
   "applicants.markHired": "Mark say you hire am",
   "applicants.reconsider": "Check am again",
-  "applicants.shortlistedToast": "You don pick am. You fit see their number now, and we don email dem.",
+  "applicants.shortlistedToast": "You don pick am. You fit see their number now, and we don send dem SMS.",
   "applicants.updatedToast": "E don update. We go email dem.",
   "applicants.noneInGroup": "Nobody dey dis group yet.",
 

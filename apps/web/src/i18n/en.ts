@@ -173,7 +173,7 @@ export const en = {
   "how.w2t": "Apply in one tap",
   "how.w2b": "Every job shows the pay, location, housing and meals up front.",
   "how.w3t": "Get shortlisted",
-  "how.w3b": "Only then does the employer see your number — and we email you every update.",
+  "how.w3b": "Only then does the employer see your number — and we text you every update.",
   "how.e1t": "Post a job in minutes",
   "how.e1b": "Describe the role, pay and conditions. See a live preview as you type.",
   "how.e2t": "Review real applicants",
@@ -284,7 +284,7 @@ export const en = {
   "apply.messagePlaceholder": "I have 3 years' experience with…",
   "apply.send": "Send application",
   "apply.privacy": "The employer sees your profile. Your phone number is shared only if they shortlist you.",
-  "apply.sent": "Application sent! We'll email you when the employer responds.",
+  "apply.sent": "Application sent! We'll text you when the employer responds.",
 
   "report.button": "Report this job",
   "report.lead": "Reports are confidential. The employer won't see who reported them.",
@@ -437,7 +437,8 @@ export const en = {
 
   // ---- Worker applications
   "apps.title": "My applications",
-  "apps.lead": "We'll email you whenever an employer updates your application.",
+  "apps.lead":
+    "We'll text you (and email you, if you added an email) whenever an employer updates your application.",
   "apps.tabs": "Filter applications",
   "apps.all": "All",
   "apps.inProgress": "In progress",
@@ -518,7 +519,7 @@ export const en = {
   "applicants.markHired": "Mark as hired",
   "applicants.reconsider": "Reconsider",
   "applicants.shortlistedToast":
-    "Shortlisted. Their contact details are now visible, and we've emailed them.",
+    "Shortlisted. Their contact details are now visible, and we've let them know by SMS.",
   "applicants.updatedToast": "Applicant updated. They'll be notified by email.",
   "applicants.noneInGroup": "No applicants in this group yet.",
 

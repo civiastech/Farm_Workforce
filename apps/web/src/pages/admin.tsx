@@ -171,7 +171,7 @@ export function AdminReportsPage() {
                     </div>
                   </div>
                   <Badge tone={REPORT_STATUS_TONE[report.status]} dot>
-                    {report.status}
+                    {report.status[0]!.toUpperCase() + report.status.slice(1)}
                   </Badge>
                 </div>
                 {report.job ? (
