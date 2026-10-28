@@ -6,7 +6,7 @@ This guide puts the platform live on a single Linux server with HTTPS. It takes 
 
 - **A server.** Ubuntu 24.04 LTS, at least 2 vCPU, 4 GB RAM and 40 GB disk. Any provider works. A region close to your users (e.g. Lagos or Johannesburg, otherwise Europe) keeps the app fast.
 - **A domain name** (e.g. `farmworkforce.ng`). Point its DNS **A** record (and **AAAA** for IPv6) at the server, plus `www`.
-- **An SMTP email provider** for password resets and application updates. Any provider that offers SMTP credentials works.
+- **An SMTP email provider** for password resets. Any provider that offers SMTP credentials works.
 
 ## 2. Prepare the server
 
@@ -24,7 +24,7 @@ sudo ufw enable
 
 ```bash
 sudo mkdir -p /srv && sudo chown $USER /srv && cd /srv
-git clone https://github.com/YOUR-ORG/farm-workforce-platform.git
+git clone https://github.com/civiastech/Farm_Workforce.git farm-workforce-platform
 cd farm-workforce-platform
 cp .env.production.example .env
 nano .env        # set DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, MAIL_FROM, SMTP_URL
