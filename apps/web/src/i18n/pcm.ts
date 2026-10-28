@@ -205,6 +205,8 @@ const pcm: Messages = {
 
   "legal.eyebrow": "Legal",
   "legal.englishOnly": "For now, dis page dey only for English.",
+  "crash.body": "Sorry, this page get wahala. If you reload am, e go usually work.",
+  "crash.reload": "Reload the page",
   "notFound.title": "Dis farm empty.",
   "notFound.body": "The page wey you dey find no dey, or dem don move am.",
 
@@ -232,6 +234,8 @@ const pcm: Messages = {
 
   "job.allJobs": "All jobs",
   "job.share": "Share",
+  "job.shareWhatsApp": "Share for WhatsApp",
+  "job.whatsappText": "Farm work: {title}, {pay}, {place}. Apply free:",
   "job.linkCopied": "Link don copy. Share am give person wey fit the work.",
   "job.unavailableTitle": "Dis job no dey again",
   "job.unavailableBody": "Maybe dem don fill am or remove am.",

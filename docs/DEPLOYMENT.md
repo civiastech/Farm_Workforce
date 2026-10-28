@@ -104,6 +104,14 @@ Use a free external monitor such as [UptimeRobot](https://uptimerobot.com) or [B
 | **Certificate**       | SSL expiry alert 14 days before expiry. Caddy renews automatically, so an alert means renewal is failing.                              |
 | **Backups**           | The healthchecks.io heartbeat above.                                                                                                   |
 
+### Error tracking
+
+Create a free project at [sentry.io](https://sentry.io) (platform: Node.js), copy its DSN into `.env` as `SENTRY_DSN`, and restart. Crashes in the API and in visitors' browsers then appear in Sentry, tagged with the release (`IMAGE_TAG`) and request ID. Browser reports go through `/api/monitoring`, so the site's strict CSP doesn't change, and no cookies, headers, IP addresses or form contents are sent. Without a DSN nothing is loaded or sent.
+
+### Link previews and search
+
+Job links shared on WhatsApp, Facebook, Telegram or X show the job title, pay, place and a preview image. nginx sends those link-preview bots to a small server-rendered page; people and search engines get the normal app. `/sitemap.xml` lists every open job for Google; submit it once in [Google Search Console](https://search.google.com/search-console). To check a preview after deploying, paste a job link into a WhatsApp chat with yourself or into the [Facebook sharing debugger](https://developers.facebook.com/tools/debug/).
+
 Send alerts to at least two people, by email plus SMS or a mobile app. A monitor that only alerts one inbox nobody watches isn't monitoring.
 
 ## 6. Updating to a new version
@@ -145,22 +153,24 @@ Then run `dc pull && dc up -d --wait`. Do not pass `--build`. If the packages ar
 
 ## Configuration reference (API)
 
-| Variable                     | Default           | Notes                                                                                                                   |
-| ---------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`               | required          | `postgres://user:pass@host:5432/db`                                                                                     |
-| `APP_ORIGIN`                 | required          | Public URL of the site. Used for CSRF checks and links in emails                                                        |
-| `TRUST_PROXY`                | `1`               | Number of reverse proxies in front of the API (production: `2`)                                                         |
-| `COOKIE_SECURE`              | from `APP_ORIGIN` | `true` when the origin is https                                                                                         |
-| `SESSION_TTL_DAYS`           | `14`              | Sliding session lifetime                                                                                                |
-| `RATE_LIMIT_PER_MINUTE`      | `300`             | Per client IP, all endpoints                                                                                            |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10`              | Sign-in, registration, password endpoints                                                                               |
-| `MAIL_TRANSPORT`             | `log`             | `smtp` in production                                                                                                    |
-| `SMTP_URL`, `MAIL_FROM`      | —                 | Required when `MAIL_TRANSPORT=smtp`                                                                                     |
-| `SMS_TRANSPORT`              | `log`             | `termii` or `africastalking` in production. `log` is refused on an https site, because it shows sign-up codes on screen |
-| `SMS_SENDER_ID`              | —                 | Registered sender ID, up to 11 characters. Required for Termii                                                          |
-| `TERMII_API_KEY`             | —                 | Required when `SMS_TRANSPORT=termii`                                                                                    |
-| `TERMII_CHANNEL`             | `dnd`             | `dnd` reaches numbers on Do-Not-Disturb, which codes need                                                               |
-| `AT_USERNAME`, `AT_API_KEY`  | —                 | Required when `SMS_TRANSPORT=africastalking` (`sandbox` for testing)                                                    |
-| `LOG_LEVEL`                  | `info`            | `debug` for troubleshooting                                                                                             |
+| Variable                               | Default                   | Notes                                                                                                                   |
+| -------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                         | required                  | `postgres://user:pass@host:5432/db`                                                                                     |
+| `APP_ORIGIN`                           | required                  | Public URL of the site. Used for CSRF checks and links in emails                                                        |
+| `TRUST_PROXY`                          | `1`                       | Number of reverse proxies in front of the API (production: `2`)                                                         |
+| `COOKIE_SECURE`                        | from `APP_ORIGIN`         | `true` when the origin is https                                                                                         |
+| `SESSION_TTL_DAYS`                     | `14`                      | Sliding session lifetime                                                                                                |
+| `RATE_LIMIT_PER_MINUTE`                | `300`                     | Per client IP, all endpoints                                                                                            |
+| `AUTH_RATE_LIMIT_PER_MINUTE`           | `10`                      | Sign-in, registration, password endpoints                                                                               |
+| `MAIL_TRANSPORT`                       | `log`                     | `smtp` in production                                                                                                    |
+| `SMTP_URL`, `MAIL_FROM`                | —                         | Required when `MAIL_TRANSPORT=smtp`                                                                                     |
+| `SMS_TRANSPORT`                        | `log`                     | `termii` or `africastalking` in production. `log` is refused on an https site, because it shows sign-up codes on screen |
+| `SMS_SENDER_ID`                        | —                         | Registered sender ID, up to 11 characters. Required for Termii                                                          |
+| `TERMII_API_KEY`                       | —                         | Required when `SMS_TRANSPORT=termii`                                                                                    |
+| `TERMII_CHANNEL`                       | `dnd`                     | `dnd` reaches numbers on Do-Not-Disturb, which codes need                                                               |
+| `SENTRY_DSN`                           | —                         | Turns on error tracking (API and browser). Leave unset to disable                                                       |
+| `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE` | `production`, `IMAGE_TAG` | Labels for errors in Sentry                                                                                             |
+| `AT_USERNAME`, `AT_API_KEY`            | —                         | Required when `SMS_TRANSPORT=africastalking` (`sandbox` for testing)                                                    |
+| `LOG_LEVEL`                            | `info`                    | `debug` for troubleshooting                                                                                             |
 
 The API refuses to start if the configuration is invalid, and prints exactly which variable is wrong.

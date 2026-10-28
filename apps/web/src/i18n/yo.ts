@@ -204,6 +204,8 @@ const yo: Messages = {
 
   "legal.eyebrow": "Òfin",
   "legal.englishOnly": "Ojú-ìwé yìí wà ní èdè Gẹ̀ẹ́sì nìkan fún báyìí.",
+  "crash.body": "Má bínú, ojú-ìwé yìí ní ìṣòro. Títún un gbé sókè sábà máa ń ṣàtúnṣe rẹ̀.",
+  "crash.reload": "Tún ojú-ìwé gbé sókè",
   "notFound.title": "Oko yìí ṣófo.",
   "notFound.body": "Ojú-ìwé tí o ń wá kò sí, tàbí wọ́n ti gbé e lọ.",
 
@@ -231,6 +233,8 @@ const yo: Messages = {
 
   "job.allJobs": "Gbogbo iṣẹ́",
   "job.share": "Pín",
+  "job.shareWhatsApp": "Pín lórí WhatsApp",
+  "job.whatsappText": "Iṣẹ́ oko: {title}, {pay}, {place}. Béèrè lọ́fẹ̀ẹ́:",
   "job.linkCopied": "A ti da ìjápọ̀ kọ. Pín in fún ẹni tó yẹ fún iṣẹ́ náà.",
   "job.unavailableTitle": "Iṣẹ́ yìí kò sí mọ́",
   "job.unavailableBody": "Ó ṣeé ṣe kí wọ́n ti rí ènìyàn tàbí kí wọ́n ti yọ ọ́.",

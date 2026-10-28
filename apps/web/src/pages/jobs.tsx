@@ -25,6 +25,7 @@ import {
   Search,
   SearchX,
   Send,
+  MessageCircle,
   Share2,
   ShieldAlert,
   Users,
@@ -320,6 +321,15 @@ export function JobDetailPage() {
   }
   const data = job.data!;
 
+  // WhatsApp is how most job news travels: a prefilled message in the viewer's language.
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+    `${t("job.whatsappText", {
+      title: data.title,
+      pay: `${payRange(data.payMin, data.payMax)} ${t(`period.${data.payPeriod}`)}`,
+      place: `${data.town}, ${data.state}`,
+    })} ${window.location.origin}/jobs/${data.id}`,
+  )}`;
+
   async function share() {
     const url = window.location.href;
     const text = `${data.title} — ${data.employer.organisationName}, ${data.town}`;
@@ -352,6 +362,17 @@ export function JobDetailPage() {
                     <Badge tone={JOB_STATUS_TONE[data.status]} dot>
                       {t(`jobStatus.${data.status}`)}
                     </Badge>
+                  )}
+                  {data.status === "open" && (
+                    <a
+                      className="btn btn-outline btn-sm"
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={t("job.shareWhatsApp")}
+                    >
+                      <MessageCircle size={16} /> WhatsApp
+                    </a>
                   )}
                   <button type="button" className="btn btn-outline btn-sm" onClick={share}>
                     <Share2 size={16} /> {t("job.share")}

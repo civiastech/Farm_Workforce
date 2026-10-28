@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
+import { RouteError } from "./components/RouteError";
 import { HomePage } from "./pages/home";
 import { JobDetailPage, JobsPage } from "./pages/jobs";
 
@@ -22,6 +23,7 @@ const admin = () => import("./pages/admin");
 export const router = createBrowserRouter([
   {
     element: <Layout />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <HomePage /> },
       { path: "jobs", element: <JobsPage /> },

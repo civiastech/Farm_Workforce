@@ -44,6 +44,11 @@ const envSchema = z
     TERMII_CHANNEL: z.enum(["dnd", "generic", "whatsapp"]).default("dnd"),
     AT_USERNAME: z.string().optional(),
     AT_API_KEY: z.string().optional(),
+    /** Error tracking. Leave unset to disable. */
+    SENTRY_DSN: z.preprocess((v) => (v === "" ? undefined : v), z.url().optional()),
+    SENTRY_ENVIRONMENT: z.string().default("production"),
+    /** e.g. the git tag or commit, so errors can be tied to a deploy. */
+    SENTRY_RELEASE: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_TRANSPORT === "smtp" && !env.SMTP_URL) {

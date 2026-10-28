@@ -208,6 +208,8 @@ const fr: Messages = {
 
   "legal.eyebrow": "Mentions légales",
   "legal.englishOnly": "Cette page est pour l'instant disponible en anglais uniquement.",
+  "crash.body": "Désolé, cette page a rencontré un problème. Recharger la page règle généralement le souci.",
+  "crash.reload": "Recharger la page",
   "notFound.title": "Ce champ est vide.",
   "notFound.body": "La page que vous cherchez n'existe pas ou a été déplacée.",
 
@@ -235,6 +237,8 @@ const fr: Messages = {
 
   "job.allJobs": "Toutes les offres",
   "job.share": "Partager",
+  "job.shareWhatsApp": "Partager sur WhatsApp",
+  "job.whatsappText": "Offre agricole : {title}, {pay}, {place}. Postulez gratuitement :",
   "job.linkCopied": "Lien copié. Partagez-le avec quelqu'un qui conviendrait.",
   "job.unavailableTitle": "Cette offre n'est pas disponible",
   "job.unavailableBody": "Elle a peut-être été pourvue ou retirée.",

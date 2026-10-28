@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router";
 import { I18nProvider } from "./i18n";
 import { ApiError } from "./lib/api";
 import { AuthProvider } from "./lib/auth";
+import { startMonitoring } from "./lib/monitoring";
 import { ToastProvider } from "./lib/toast";
 import { router } from "./router";
 // Self-hosted variable fonts (served from our origin, so the CSP stays 'self'-only).
@@ -24,6 +25,8 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+void startMonitoring();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

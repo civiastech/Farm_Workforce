@@ -8,6 +8,7 @@ import type { Database } from "./db/client";
 import { AppError, forbidden } from "./lib/errors";
 import { startBackgroundJobs } from "./lib/background";
 import { createMailer, type Mailer } from "./lib/mailer";
+import { captureError } from "./lib/monitoring";
 import { createOutbox } from "./lib/outbox";
 import { createSmsSender, type SmsSender } from "./lib/sms";
 import { registerAuth } from "./plugins/auth";
@@ -17,6 +18,8 @@ import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
 import { jobRoutes } from "./routes/jobs";
 import { meRoutes } from "./routes/me";
+import { monitoringRoutes } from "./routes/monitoring";
+import { shareRoutes } from "./routes/share";
 
 export interface AppDependencies {
   config: Config;
@@ -100,8 +103,9 @@ export async function buildApp({
 
   registerAuth(app);
 
+  // API responses are private by default; public pages (share previews, sitemap) set their own.
   app.addHook("onSend", async (_request, reply) => {
-    reply.header("Cache-Control", "no-store");
+    if (!reply.hasHeader("Cache-Control")) reply.header("Cache-Control", "no-store");
   });
 
   app.setErrorHandler<FastifyError | AppError>((error, request, reply) => {
@@ -120,6 +124,12 @@ export async function buildApp({
     }
 
     request.log.error({ err: error }, "Unhandled error");
+    captureError(error, {
+      requestId: request.id,
+      method: request.method,
+      route: request.routeOptions.url,
+      userId: request.user?.id,
+    });
     const body: ApiErrorBody = {
       error: { code: "internal_error", message: "Something went wrong on our side. Please try again." },
     };
@@ -141,6 +151,8 @@ export async function buildApp({
       await api.register(jobRoutes);
       await api.register(applicationRoutes);
       await api.register(adminRoutes);
+      await api.register(shareRoutes);
+      await api.register(monitoringRoutes);
     },
     { prefix: "/api" },
   );

@@ -205,6 +205,8 @@ const ha: Messages = {
 
   "legal.eyebrow": "Doka",
   "legal.englishOnly": "A yanzu wannan shafin yana cikin Turanci kawai.",
+  "crash.body": "Yi haƙuri, wannan shafin ya sami matsala. Sake loda shi yakan gyara shi.",
+  "crash.reload": "Sake loda shafin",
   "notFound.title": "Wannan gona babu komai.",
   "notFound.body": "Shafin da kake nema babu shi ko an motsa shi.",
 
@@ -232,6 +234,8 @@ const ha: Messages = {
 
   "job.allJobs": "Duk ayyuka",
   "job.share": "Raba",
+  "job.shareWhatsApp": "Raba a WhatsApp",
+  "job.whatsappText": "Aikin gona: {title}, {pay}, {place}. Nema kyauta:",
   "job.linkCopied": "An kwafi hanyar haɗi. Raba shi ga wanda ya dace.",
   "job.unavailableTitle": "Wannan aikin ba ya nan",
   "job.unavailableBody": "Wataƙila an cike shi ko an cire shi.",

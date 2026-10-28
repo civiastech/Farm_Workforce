@@ -88,4 +88,5 @@ The current setup comfortably serves a national launch on one modest server (2 v
 - WhatsApp as a notification channel (Termii supports it through `TERMII_CHANNEL=whatsapp`, but templates need approval first).
 - Notify employers by SMS about new applicants, with a daily digest so a busy job doesn't send dozens of messages.
 - In-app messaging between employer and shortlisted worker.
-- Error tracking (e.g. Sentry) and metrics. The hidden source maps are already generated.
+- Upload the hidden source maps to Sentry in the release workflow, so browser stack traces show original code.
+- Per-job preview images (title and pay drawn on the image) instead of one site-wide image.

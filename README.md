@@ -20,6 +20,8 @@ A job marketplace that connects agricultural workers and farm employers across N
 - **Trust & safety:** one-tap job reporting, a moderation queue, job takedown, verified-employer badges, and an audit log of security and moderation events.
 - **Accounts:** sign up with just a mobile number, verified by SMS code (email optional). Sign in with phone or email. Password reset by SMS code or email link, password change (signs out other devices), rate-limited sign-in.
 - **Six languages:** English, Naijá (Pidgin), Hausa, Yorùbá, Igbo and French. Switch from the header, mobile menu or footer; signed-in users keep their choice on every device.
+- **Made to be shared:** a WhatsApp button on every job, rich link previews (title, pay, place) on WhatsApp and social apps, and a sitemap of open jobs for search engines.
+- **Operations:** jobs close after 30 days with a reminder to renew, a moderation console (overview, reports, user suspension, failed messages), off-site backups with a heartbeat, and optional Sentry error tracking.
 - **Built for phones on slow networks:** mobile-first layout, code-split bundles, a light/dark theme that follows the device, and accessible forms and navigation.
 
 ## Quick start: run the whole stack in Docker

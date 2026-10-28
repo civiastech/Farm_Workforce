@@ -337,3 +337,56 @@ describe("listing expiry", () => {
     expect((await employer.get(`/api/jobs/${jobId}`)).json().expiresAt).toBeNull();
   });
 });
+
+describe("link previews and sitemap", () => {
+  it("gives preview bots the job's title, pay and place, safely escaped", async () => {
+    const { client: employer } = await registerEmployer(ctx.app);
+    const jobId = await postJob(employer, {
+      title: 'Poultry hand <script>alert("x")</script>',
+      accommodationProvided: true,
+    });
+
+    const res = await ctx.app.inject(`/api/share/jobs/${jobId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/html/);
+    expect(res.headers["cache-control"]).toBe("public, max-age=300");
+    expect(res.body).not.toContain("<script>");
+    expect(res.body).toContain("Poultry hand &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    expect(res.body).toMatch(/<meta property="og:title" content="[^"]*₦100,000 – ₦150,000 \/ month">/);
+    expect(res.body).toContain(
+      "GreenFields Produce is hiring in Abeokuta, Ogun. Full-time · Accommodation provided",
+    );
+    expect(res.body).toContain('<meta property="og:image" content="http://localhost:5173/og-image.png">');
+    expect(res.body).toContain(`<meta property="og:url" content="http://localhost:5173/jobs/${jobId}">`);
+  });
+
+  it("does not reveal drafts or unknown jobs", async () => {
+    const { client: employer } = await registerEmployer(ctx.app);
+    const draftId = await postJob(employer, { status: "draft", title: "Secret draft job" });
+    for (const id of [draftId, "not-a-uuid", "00000000-0000-0000-0000-000000000000"]) {
+      const res = await ctx.app.inject(`/api/share/jobs/${id}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.body).not.toContain("Secret draft job");
+      expect(res.body).toContain("<title>Farm Workforce</title>");
+    }
+  });
+
+  it("lists open jobs in the sitemap and points robots.txt at it", async () => {
+    const { client: employer } = await registerEmployer(ctx.app);
+    const openId = await postJob(employer);
+    const draftId = await postJob(employer, { status: "draft" });
+
+    const sitemap = await ctx.app.inject("/api/sitemap.xml");
+    expect(sitemap.headers["content-type"]).toMatch(/application\/xml/);
+    expect(sitemap.body).toContain(`<loc>http://localhost:5173/jobs/${openId}</loc>`);
+    expect(sitemap.body).not.toContain(draftId);
+
+    const robots = await ctx.app.inject("/api/robots.txt");
+    expect(robots.body).toContain("Sitemap: http://localhost:5173/sitemap.xml");
+    expect(robots.body).toContain("Disallow: /dashboard");
+  });
+
+  it("keeps ordinary API responses uncached", async () => {
+    expect((await ctx.app.inject("/api/jobs")).headers["cache-control"]).toBe("no-store");
+  });
+});

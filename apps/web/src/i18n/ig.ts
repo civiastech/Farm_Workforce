@@ -203,6 +203,8 @@ const ig: Messages = {
 
   "legal.eyebrow": "Iwu",
   "legal.englishOnly": "Ugbu a peeji a dị naanị n'asụsụ Bekee.",
+  "crash.body": "Ndo, peeji a nwere nsogbu. Ịmegharị ya na-edozikarị ya.",
+  "crash.reload": "Megharịa peeji",
   "notFound.title": "Ugbo a tọgbọrọ chakoo.",
   "notFound.body": "Peeji ị na-achọ adịghị, ma ọ bụ a kwagara ya.",
 
@@ -230,6 +232,8 @@ const ig: Messages = {
 
   "job.allJobs": "Ọrụ niile",
   "job.share": "Kesaa",
+  "job.shareWhatsApp": "Kesaa na WhatsApp",
+  "job.whatsappText": "Ọrụ ugbo: {title}, {pay}, {place}. Tinye akwụkwọ n'efu:",
   "job.linkCopied": "E depụtaghachila njikọ. Kesaa ya nye onye kwesịrị ọrụ a.",
   "job.unavailableTitle": "Ọrụ a adịghịzi",
   "job.unavailableBody": "Ikekwe e jupụtala ya ma ọ bụ wepụ ya.",

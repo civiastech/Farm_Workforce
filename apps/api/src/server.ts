@@ -1,8 +1,10 @@
 import { buildApp } from "./app";
 import { loadConfig } from "./config";
 import { createDatabase } from "./db/client";
+import { flushMonitoring, initMonitoring } from "./lib/monitoring";
 
 const config = loadConfig();
+await initMonitoring(config);
 const { db, sql } = createDatabase(config.DATABASE_URL, { max: config.DATABASE_POOL_MAX });
 
 const app = await buildApp({
@@ -24,6 +26,7 @@ async function shutdown(signal: string) {
   try {
     await app.close();
     await sql.end({ timeout: 5 });
+    await flushMonitoring();
     process.exit(0);
   } catch (error) {
     app.log.error({ err: error }, "Error during shutdown");

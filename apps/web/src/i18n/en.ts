@@ -214,6 +214,8 @@ export const en = {
 
   "legal.eyebrow": "Legal",
   "legal.englishOnly": "This page is currently available in English only.",
+  "crash.body": "Sorry, this page ran into a problem. Reloading usually fixes it.",
+  "crash.reload": "Reload page",
   "notFound.title": "This field is empty.",
   "notFound.body": "The page you're looking for doesn't exist or has moved.",
 
@@ -242,6 +244,8 @@ export const en = {
 
   "job.allJobs": "All jobs",
   "job.share": "Share",
+  "job.shareWhatsApp": "Share on WhatsApp",
+  "job.whatsappText": "Farm job: {title}, {pay}, {place}. Apply free:",
   "job.linkCopied": "Link copied. Share it with someone who'd be a great fit.",
   "job.unavailableTitle": "This job isn't available",
   "job.unavailableBody": "It may have been filled or removed.",
