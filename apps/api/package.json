@@ -17,12 +17,12 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.2.0",
-    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/rate-limit": "^11.2.2",
     "@fwp/shared": "*",
-    "@sentry/node": "11.7.0",
+    "@sentry/node": "11.11.0",
     "drizzle-orm": "^0.45.4",
-    "fastify": "^5.12.7",
-    "nodemailer": "^10.2.1",
+    "fastify": "^5.12.8",
+    "nodemailer": "^10.4.0",
     "postgres": "^3.4.9",
     "zod": "^4.6.7"
   },
@@ -33,6 +33,6 @@
     "esbuild": "^0.28.2",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.23.15",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   }
 }
